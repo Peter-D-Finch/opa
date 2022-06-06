@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    tools:context="com.dataxign.mark.aasruckmarchpacer.MainActivity">
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:columnCount="2"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_margin="10dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="GPS Stuff:" />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/lat_raw"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Latitude:" />
+                <Space
+                    android:layout_width="@dimen/activity_horizontal_margin"
+                    android:layout_height="@dimen/activity_vertical_margin" />
+                <TextView
+                    android:id="@+id/lon_raw"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Longitude:" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/east"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Easting:" />
+                <Space
+                    android:layout_width="@dimen/activity_horizontal_margin"
+                    android:layout_height="@dimen/activity_vertical_margin" />
+                <TextView
+                    android:id="@+id/north"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Northing" />
+            </LinearLayout>
+            <TextView
+                android:id="@+id/update_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Update Time:" />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/speedinst"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Speed (inst):" />
+                <Space
+                    android:layout_width="@dimen/activity_horizontal_margin"
+                    android:layout_height="@dimen/activity_vertical_margin" />
+                <TextView
+                    android:id="@+id/speedave"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Speed (ave):" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <TextView
+                    android:id="@+id/headinginst"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Heading (inst):" />
+                <Space
+                    android:layout_width="@dimen/activity_horizontal_margin"
+                    android:layout_height="@dimen/activity_vertical_margin" />
+                <TextView
+                    android:id="@+id/headingave"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Heading (ave):" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/current_seg"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Segment:" />
+                <Space
+                    android:layout_width="@dimen/activity_horizontal_margin"
+                    android:layout_height="@dimen/activity_vertical_margin" />
+                <TextView
+                    android:id="@+id/heading_segment"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Distance along segment:" />
+            </LinearLayout>
+            <TextView
+                android:id="@+id/distance_segment"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Distance along segment:" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <Button
+                    android:layout_height="wrap_content"
+                    android:layout_width="wrap_content"
+                    android:id="@+id/buttonStart"
+                    android:onClick="buttonStartPressed"
+                    android:textSize="30sp"
+                    android:textStyle="bold"
+                    android:text="Start"
+                    android:gravity="center|center"/>
+                <Space
+                    android:layout_width="@dimen/activity_horizontal_margin"
+                    android:layout_height="@dimen/activity_vertical_margin" />
+                <Button
+                    android:layout_height="wrap_content"
+                    android:layout_width="wrap_content"
+                    android:id="@+id/buttonMode"
+                    android:onClick="buttonModePressed"
+                    android:textSize="30sp"
+                    android:textStyle="bold"
+                    android:text="Mode"
+                    android:gravity="center|center"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/time_elapsed"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Elapsed Time:" />
+                <Space
+                    android:layout_width="@dimen/activity_horizontal_margin"
+                    android:layout_height="@dimen/activity_vertical_margin" />
+                <TextView
+                    android:id="@+id/time_togo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Time To Go:" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/distance_completed"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Distance Completed:" />
+                <Space
+                    android:layout_width="@dimen/activity_horizontal_margin"
+                    android:layout_height="@dimen/activity_vertical_margin" />
+                <TextView
+                    android:id="@+id/distance_togo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Distance to go:" />
+            </LinearLayout>
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/red_line_800x4"/>
+
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_margin="10dp">
+
+
+            <com.dataxign.mark.aasruckmarchpacer.MapChart_CustomView
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+                android:id="@+id/map_chart"
+                android:scaleType="center"
+                android:layout_marginTop="10dp"/>
+
+        </LinearLayout>
+    </LinearLayout>
+</RelativeLayout>
