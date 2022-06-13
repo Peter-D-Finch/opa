@@ -26,6 +26,9 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import androidx.annotation.RequiresApi;
+import androidx.core.app.ActivityCompat;
+
 import java.io.File;
 
 public class MainActivity extends Activity {
@@ -62,8 +65,18 @@ public class MainActivity extends Activity {
      * This is Android's initialization function. It runs when the app is started up.
      * @param savedInstanceState Don't know what this is...
      */
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Request permissions
+        ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, 1);
+        ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_SCAN}, 1);
+        boolean fine_loc_perm = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED;
+        boolean course_loc_perm = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED;
+        if (fine_loc_perm && course_loc_perm) { return; }
+
+        // Set orientation to landscape
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         setContentView(R.layout.activity_main);
 
@@ -76,7 +89,8 @@ public class MainActivity extends Activity {
         //Initialize the route for the app
         initRoute();
 
-        // TODO Initialize Sensors
+        // Initialize Sensor
+        initSensor(0);
 
         //Initialize the UI manager
         handler = new Handler();
@@ -113,10 +127,13 @@ public class MainActivity extends Activity {
         button_start = (Button) findViewById(R.id.buttonStart);
         button_start.setOnClickListener(new View.OnClickListener() {
             @Override
+            @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
             public void onClick(View v) {
                 //change state to started route.
                 //Check whether on the segment 0 if not then ignore
                 //button_start.setEnabled(false);
+                Log.e("MainActivity", "Start Button pressed");
+                oban.start();
             }
         });
 
@@ -188,9 +205,10 @@ public class MainActivity extends Activity {
      * This function initializes the apps OBAN sensor
      * @param device_num The configuration number of the user's OBAN sensor
      */
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private void initSensor(int device_num) {
-        Log.v("initSensor","OBAN sensor initialized: #"+device_num);
-        oban = new ObanSensor();
+        Log.e("initSensor","OBAN sensor initialized: #"+device_num);
+        oban = new ObanSensor(0, getApplicationContext());
     }
 
     /**
@@ -276,7 +294,7 @@ public class MainActivity extends Activity {
 
             // Snapping the location point onto the route
             LocationPoint snap = route.snapToLine(currentLocation);
-            Log.e("Main", "Current Route = " + snap.currentSegment);
+            Log.v("Main", "Current Route = " + snap.currentSegment);
 
             // If the LocationPoint was able to be snapped onto the route
             if (snap.currentSegment >= 0) {

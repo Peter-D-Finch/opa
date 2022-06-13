@@ -56,8 +56,8 @@ public class Route {
      * @param whichRoute an integer representing which route is to be loaded
      */
     public void generateRouteFromFile(Resources rs, int whichRoute){
-        BufferedReader in = new BufferedReader(new InputStreamReader(rs.openRawResource(R.raw.route_ft_campbell_grades)));
-        //BufferedReader in = new BufferedReader(new InputStreamReader(rs.openRawResource(R.raw.route_douglas)));
+        //BufferedReader in = new BufferedReader(new InputStreamReader(rs.openRawResource(R.raw.route_ft_campbell_grades)));
+        BufferedReader in = new BufferedReader(new InputStreamReader(rs.openRawResource(R.raw.route_douglas)));
         //BufferedReader in = new BufferedReader(new InputStreamReader(rs.openRawResource(R.raw.route_natick)));
 
         // Reading a route file
@@ -97,7 +97,7 @@ public class Route {
                 if(min_easting>currentPoint.easting)min_easting=currentPoint.easting;
                 if(max_northing<currentPoint.northing)max_northing=currentPoint.northing;
                 if(min_northing>currentPoint.northing)min_northing=currentPoint.northing;
-                Log.i("Route","Added LocationPoint: "+currentPoint);
+
                 //A point has been successfully read. If it is the first point then
                 //store as last location and move on
                 if(firstPoint){
@@ -108,7 +108,6 @@ public class Route {
                     //generate a new route segment
                     Segment seg=new Segment(lastPoint,currentPoint);
                     addSegment(seg);
-                    Log.i("Route", "Added Segment > " + seg);
                     lastPoint=currentPoint.copyOf();
                 }
             }
@@ -181,7 +180,6 @@ public class Route {
         dist_vector.northing=line_vector.northing*(dotLandP/normLsq);
 
         distanceCurrentSegment=Math.sqrt(Math.pow(dist_vector.easting,2)+Math.pow(dist_vector.northing,2));
-        Log.i("Route","dotLandP "+dotLandP+" normLsq "+normLsq);
         snap.distanceAlongSegment=distanceCurrentSegment;
 
         //absolute location
@@ -196,7 +194,6 @@ public class Route {
         //Segment s=route.get(seg_idx);
         double d=findPerpendicularDistanceToSegment(p,s);
         double h=Math.sqrt(Math.pow((p.easting-s.end.easting),2)+Math.pow((p.northing-s.end.northing),2));
-        Log.e("Route","H from End: "+h);
         double a=Math.sqrt(h*h-d*d);
         return a;
     }
@@ -205,7 +202,6 @@ public class Route {
         //Segment s=route.get(seg_idx);
         double d=findPerpendicularDistanceToSegment(p, s);
         double h=Math.sqrt(Math.pow((p.easting - s.start.easting), 2) + Math.pow((p.northing - s.start.northing), 2));
-        Log.e("Route","H from Start: "+h);
         double a=Math.sqrt(h*h-d*d);
         return a;
     }
@@ -220,8 +216,6 @@ public class Route {
         width=(max_easting+100)-left;
         top=max_northing+100;
         height=top-(min_northing-100);
-        Log.i("Route", "left: "+left+" width "+width+" top "+top+" height "+height+ " min_northing "+min_northing);
-
     }
 
     public void addSegment(Segment s){

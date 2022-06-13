@@ -80,7 +80,6 @@ public class Policy {
 		
 		int speed=policy[timeIndex][psiIndex][distIndex];
 		unGuide=speed;
-		Log.e("Policy","Speed="+speedValue(speed));
 		
 		
 		return speedValue(speed);
