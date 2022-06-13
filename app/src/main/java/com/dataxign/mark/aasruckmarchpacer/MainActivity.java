@@ -24,6 +24,7 @@ import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import androidx.annotation.RequiresApi;
@@ -39,6 +40,8 @@ public class MainActivity extends Activity {
 
     //Widgets
     private TextView lat_raw, lon_raw, easting, northing, updateFreq, speedinst, speedave, headinginst, headingave, segmentnum, segmenthead, segmentdist;
+    private EditText roster_num_input;
+    private TextView heart_rate, battery;
     private Button button_start, button_mode;
     private MapChart_CustomView map;
     private int mapDisplayMode = 0; //0=Map, 1=Pacing Display
@@ -54,7 +57,7 @@ public class MainActivity extends Activity {
     private double desiredSpeed = 2.5; // mph
 
     // Data manager and sensor stuff
-    public ObanSensor oban;
+    public ObanSensor oban = null;
     public DataManager dm;
 
     // Route stuff
@@ -101,14 +104,6 @@ public class MainActivity extends Activity {
      * This function initializes all of the UI objects
      */
     private void initUI() {
-        /*
-        * This function sets up the UI. The UI consists of the following elements:
-        *  - TextViews
-        *  - MapChart_CustomView
-        *  - Start button
-        *  - Mode button
-        *  - DataSmoother
-        */
         lat_raw = (TextView) findViewById(R.id.lat_raw);
         lon_raw = (TextView) findViewById(R.id.lon_raw);
         easting = (TextView) findViewById(R.id.east);
@@ -122,24 +117,23 @@ public class MainActivity extends Activity {
         segmenthead = (TextView) findViewById(R.id.heading_segment);
         segmentdist = (TextView) findViewById(R.id.distance_segment);
 
+        roster_num_input = (EditText) findViewById(R.id.roster_num_input);
+        heart_rate = (TextView) findViewById(R.id.heart_rate);
+        battery = (TextView) findViewById(R.id.battery);
+
         map = (MapChart_CustomView) findViewById(R.id.map_chart);
 
         button_start = (Button) findViewById(R.id.buttonStart);
         button_start.setOnClickListener(new View.OnClickListener() {
-            @Override
-            @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
             public void onClick(View v) {
                 //change state to started route.
                 //Check whether on the segment 0 if not then ignore
                 //button_start.setEnabled(false);
-                Log.e("MainActivity", "Start Button pressed");
-                oban.start();
             }
         });
 
         button_mode = (Button) findViewById(R.id.buttonMode);
         button_mode.setOnClickListener(new View.OnClickListener() {
-            @Override
             public void onClick(View v) {
                 //Change the state of the custom view to show the guidance graphic
                 if (mapDisplayMode == MapChart_CustomView.MAP_DRAW_MAP)
@@ -208,7 +202,7 @@ public class MainActivity extends Activity {
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private void initSensor(int device_num) {
         Log.e("initSensor","OBAN sensor initialized: #"+device_num);
-        oban = new ObanSensor(0, getApplicationContext());
+        oban = new ObanSensor(1, getApplicationContext(), this);
     }
 
     /**

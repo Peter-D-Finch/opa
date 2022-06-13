@@ -16,15 +16,12 @@
         android:orientation="horizontal">
 
         <LinearLayout
+            android:id="@+id/info_container"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_margin="10dp">
+            android:layout_height="361dp"
+            android:layout_margin="10dp"
+            android:orientation="vertical">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="GPS Stuff:" />
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -35,15 +32,18 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Latitude:" />
+
                 <Space
                     android:layout_width="@dimen/activity_horizontal_margin"
                     android:layout_height="@dimen/activity_vertical_margin" />
+
                 <TextView
                     android:id="@+id/lon_raw"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Longitude:" />
             </LinearLayout>
+
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -54,20 +54,24 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Easting:" />
+
                 <Space
                     android:layout_width="@dimen/activity_horizontal_margin"
                     android:layout_height="@dimen/activity_vertical_margin" />
+
                 <TextView
                     android:id="@+id/north"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Northing" />
             </LinearLayout>
+
             <TextView
                 android:id="@+id/update_time"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Update Time:" />
+
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -78,27 +82,33 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Speed (inst):" />
+
                 <Space
                     android:layout_width="@dimen/activity_horizontal_margin"
                     android:layout_height="@dimen/activity_vertical_margin" />
+
                 <TextView
                     android:id="@+id/speedave"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Speed (ave):" />
             </LinearLayout>
+
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal">
+
                 <TextView
                     android:id="@+id/headinginst"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Heading (inst):" />
+
                 <Space
                     android:layout_width="@dimen/activity_horizontal_margin"
                     android:layout_height="@dimen/activity_vertical_margin" />
+
                 <TextView
                     android:id="@+id/headingave"
                     android:layout_width="wrap_content"
@@ -116,15 +126,18 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Segment:" />
+
                 <Space
                     android:layout_width="@dimen/activity_horizontal_margin"
                     android:layout_height="@dimen/activity_vertical_margin" />
+
                 <TextView
                     android:id="@+id/heading_segment"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Distance along segment:" />
             </LinearLayout>
+
             <TextView
                 android:id="@+id/distance_segment"
                 android:layout_width="wrap_content"
@@ -137,26 +150,28 @@
                 android:orientation="horizontal">
 
                 <Button
-                    android:layout_height="wrap_content"
-                    android:layout_width="wrap_content"
                     android:id="@+id/buttonStart"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center|center"
                     android:onClick="buttonStartPressed"
-                    android:textSize="30sp"
-                    android:textStyle="bold"
                     android:text="Start"
-                    android:gravity="center|center"/>
+                    android:textSize="30sp"
+                    android:textStyle="bold" />
+
                 <Space
                     android:layout_width="@dimen/activity_horizontal_margin"
                     android:layout_height="@dimen/activity_vertical_margin" />
+
                 <Button
-                    android:layout_height="wrap_content"
-                    android:layout_width="wrap_content"
                     android:id="@+id/buttonMode"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center|center"
                     android:onClick="buttonModePressed"
-                    android:textSize="30sp"
-                    android:textStyle="bold"
                     android:text="Mode"
-                    android:gravity="center|center"/>
+                    android:textSize="30sp"
+                    android:textStyle="bold" />
             </LinearLayout>
 
             <LinearLayout
@@ -169,15 +184,18 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Elapsed Time:" />
+
                 <Space
                     android:layout_width="@dimen/activity_horizontal_margin"
                     android:layout_height="@dimen/activity_vertical_margin" />
+
                 <TextView
                     android:id="@+id/time_togo"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Time To Go:" />
             </LinearLayout>
+
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -188,35 +206,102 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Distance Completed:" />
+
                 <Space
                     android:layout_width="@dimen/activity_horizontal_margin"
                     android:layout_height="@dimen/activity_vertical_margin" />
+
                 <TextView
                     android:id="@+id/distance_togo"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Distance to go:" />
             </LinearLayout>
+
             <ImageView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:src="@drawable/red_line_800x4"/>
+                android:src="@drawable/red_line_800x4" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="35dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/roster_num_label"
+                    android:layout_width="125dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:text="Roster Number: " />
+
+                <EditText
+                    android:id="@+id/roster_num_input"
+                    android:layout_width="76dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:ems="10"
+                    android:inputType="number" />
+
+                <Button
+                    android:id="@+id/pair_device_button"
+                    android:layout_width="100dp"
+                    android:layout_height="35dp"
+                    android:layout_weight="1"
+                    android:text="Pair Device" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="34dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/heart_rate_label"
+                    android:layout_width="37dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:text="Heart Rate: " />
+
+                <TextView
+                    android:id="@+id/heart_rate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:text="N/A" />
+
+                <TextView
+                    android:id="@+id/battery_label"
+                    android:layout_width="4dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:text="Battery:" />
+
+                <TextView
+                    android:id="@+id/battery"
+                    android:layout_width="9dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:text="N/A" />
+            </LinearLayout>
 
         </LinearLayout>
+
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_margin="10dp">
+            android:layout_margin="10dp"
+            android:orientation="vertical">
 
 
             <com.dataxign.mark.aasruckmarchpacer.MapChart_CustomView
-                android:layout_height="wrap_content"
-                android:layout_width="wrap_content"
                 android:id="@+id/map_chart"
-                android:scaleType="center"
-                android:layout_marginTop="10dp"/>
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:scaleType="center" />
 
         </LinearLayout>
+
     </LinearLayout>
 </RelativeLayout>

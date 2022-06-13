@@ -7,6 +7,7 @@ package com.dataxign.mark.aasruckmarchpacer;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
@@ -26,12 +27,16 @@ import androidx.core.app.ActivityCompat;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 public class ObanSensor {
 
-    public int given_roster_id; // The roster number the app will look for to read data from
-    private BluetoothLeScanner scanner;
     private Context ctxt;
+    private Activity act;
+
+    public int given_roster_id; // The roster number the app will look for to read data from
+    private final int ODIC_MANUF_ID = 2154; // The BLE ODIC manufacturer ID
+    private final int bg = 7; // Beginning index in the advertisement data
 
     // Data that the sensor advertises. The message is 21 bytes show by following comments...
     private byte message_length; // byte position 0
@@ -59,31 +64,41 @@ public class ObanSensor {
             // Get a ScanRecord which holds the data from the scan
             ScanRecord scanRecord = result.getScanRecord();
 
-            Log.e("SENSOR", "REGISTERING STUFF, HR: "+HR);
-
             // Get the sensor advertising, and check what the roster number of the device is
             byte[] sensor_data = scanRecord.getBytes();
-            int device_roster_id = get_u8x(Arrays.copyOfRange(sensor_data, 4, 6));
+            int device_roster_id = get_u8x(Arrays.copyOfRange(sensor_data, 4+bg, 6+bg));
+
+            // Get the manufacturer key
+            SparseArray<byte[]> manufacturerData = scanRecord.getManufacturerSpecificData();
+            int manufacturer_id = 0;
+            String device_name = scanRecord.getDeviceName();
+            for(int i = 0; i < manufacturerData.size(); i++){
+                manufacturer_id = manufacturerData.keyAt(i);
+            }
 
             // If the device is our registered one, then update the sensor values
-            if (device_roster_id == given_roster_id) {
-                message_length = sensor_data[0];
-                message_format_type = sensor_data[1];
-                oban_device_type = sensor_data[2];
-                group_code = sensor_data[3];
-                roster_id = Arrays.copyOfRange(sensor_data, 4, 6);
-                source_component = sensor_data[6];
-                command = sensor_data[7];
-                payload_length = sensor_data[8];
-                HSI = sensor_data[9];
-                HR = sensor_data[10];
-                ECT = sensor_data[11];
-                SKT = sensor_data[12];
-                NII = sensor_data[13];
-                Risk = sensor_data[14];
-                Confidence = sensor_data[15];
-                Battery = sensor_data[16];
-                time_stamp = Arrays.copyOfRange(sensor_data, 17, 21);
+            boolean name_correct = (device_name == null);
+            boolean manid_correct = (manufacturer_id == ODIC_MANUF_ID);
+            boolean roster_correct = (device_roster_id == given_roster_id);
+            if (name_correct && manid_correct && roster_correct) {
+                message_length = sensor_data[0+bg];
+                message_format_type = sensor_data[1+bg];
+                oban_device_type = sensor_data[2+bg];
+                group_code = sensor_data[3+bg];
+                roster_id = Arrays.copyOfRange(sensor_data, 4+bg, 6+bg);
+                source_component = sensor_data[6+bg];
+                command = sensor_data[7+bg];
+                payload_length = sensor_data[8+bg];
+                HSI = sensor_data[9+bg];
+                HR = sensor_data[10+bg];
+                ECT = sensor_data[11+bg];
+                SKT = sensor_data[12+bg];
+                NII = sensor_data[13+bg];
+                Risk = sensor_data[14+bg];
+                Confidence = sensor_data[15+bg];
+                Battery = sensor_data[16+bg];
+                time_stamp = Arrays.copyOfRange(sensor_data, 17+bg, 21+bg);
+                Log.e("Sensor: scanCallback", "STATE: " + to_string());
             }
         }
     };
@@ -91,18 +106,15 @@ public class ObanSensor {
     // Constructor
     @SuppressLint("MissingPermission")
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    public ObanSensor(int given_roster_id, Context ctxt) {
+    public ObanSensor(int given_roster_id, Context ctxt, Activity act) {
         this.given_roster_id = given_roster_id;
         this.ctxt = ctxt;
+        this.act = act;
 
         // Setting up Bluetooth stuff
         BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
-        scanner = adapter.getBluetoothLeScanner();
-    }
+        BluetoothLeScanner scanner = adapter.getBluetoothLeScanner();
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    public void start() {
-        Log.v("Sensor", "Sensor started");
         List<ScanFilter> filters = null;
         ScanSettings scanSettings = null;
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
@@ -114,7 +126,6 @@ public class ObanSensor {
                     .setReportDelay(0L)
                     .build();
         }
-        if (ActivityCompat.checkSelfPermission(ctxt, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) { return; }
         scanner.startScan(filters, scanSettings, scanCallback);
     }
 
@@ -126,6 +137,10 @@ public class ObanSensor {
 
     public int getHR() {
         return get_unsigned(HR);
+    }
+
+    public int getBattery() {
+        return Battery;
     }
 
     // Binary stuff for reading the sensor data
@@ -151,4 +166,7 @@ public class ObanSensor {
         return result;
     }
 
+    public String to_string() {
+        return "rostID: " + getRoster() + " ECT: " + ECT + " HR: " + getHR();
+    }
 }
