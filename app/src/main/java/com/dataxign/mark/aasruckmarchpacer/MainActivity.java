@@ -56,8 +56,11 @@ public class MainActivity extends Activity {
     private DataSmoother moveData;
     private double desiredSpeed = 2.5; // mph
 
-    // Data manager and sensor stuff
-    public ObanSensor oban = null;
+    // For sensor stuff
+    private int HR, Battery;
+    public ObanSensor oban;
+
+    // Data manager
     public DataManager dm;
 
     // Route stuff
@@ -123,6 +126,7 @@ public class MainActivity extends Activity {
 
         map = (MapChart_CustomView) findViewById(R.id.map_chart);
 
+        // Start button
         button_start = (Button) findViewById(R.id.buttonStart);
         button_start.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
@@ -132,6 +136,7 @@ public class MainActivity extends Activity {
             }
         });
 
+        // Mode button
         button_mode = (Button) findViewById(R.id.buttonMode);
         button_mode.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
@@ -140,6 +145,17 @@ public class MainActivity extends Activity {
                     mapDisplayMode = MapChart_CustomView.MAP_DRAW_GUIDE;
                 else mapDisplayMode = MapChart_CustomView.MAP_DRAW_MAP;
                 map.displayMode = mapDisplayMode;
+            }
+        });
+
+        // Pair device button
+        button_mode = (Button) findViewById(R.id.pair_device_button);
+        button_mode.setOnClickListener(new View.OnClickListener() {
+            @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+            public void onClick(View v) {
+                String roster_num_str = roster_num_input.getText().toString();
+                int roster_num = Integer.parseInt(roster_num_str);
+                initSensor(roster_num);
             }
         });
         moveData = new DataSmoother();
@@ -323,6 +339,16 @@ public class MainActivity extends Activity {
     }
 
     /**
+     * Updates the UI and gets data from the sensor
+     */
+    private void handleCurrentSensor() {
+        int HR = oban.getHR();
+        int batt = oban.getBattery();
+        heart_rate.setText(String.valueOf(HR));
+        battery.setText(String.valueOf(batt));
+    }
+
+    /**
      * Retrieves the last known location from the LocationListener.
      * @return The last known location
      */
@@ -364,10 +390,9 @@ public class MainActivity extends Activity {
             Location loc=getCurrentLocation();
             handleCurrentLocation(loc);
 
-            // TODO Get data from the sensor
+            handleCurrentSensor();
 
             // TODO Update the DataManager
-
 
             // Tell Android the the map has been changed and needs to be redrawn ASAP
             map.postInvalidate();
