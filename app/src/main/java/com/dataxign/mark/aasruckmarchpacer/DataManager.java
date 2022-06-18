@@ -51,13 +51,16 @@ public class DataManager {
 	// Used for storing the previous values of core temp and velocity
 	public double lastGoodHR=0;
 	public double lastGoodTC=0;
-	public double lastGoodRPM=0;
+	public double lastGoodMPH=0;
 
 	// These fields store information about the session
 	private double sessionStartDistance=0;
 	private double sessionTime=0;
 	private int startIndex=0;
 	public double distanceCompleted=0;
+
+	private long startTime;
+	private long lastDistanceCompute;
 
 	// Used for conversion
 	public final static float NUMBER_OF_FEET_IN_MILE=5280;
@@ -78,10 +81,6 @@ public class DataManager {
 	public int rpe=-999;
 	public int thermal=-999;
 	public int feeling=-999;
-	
-	public int timeIdx=0;
-	public int psiIdx=0;
-	public int distIdx=0;
 	
 	public double unadjustedGuidance=0;
 	
@@ -211,6 +210,13 @@ public class DataManager {
 		}
 	}
 
+	public void update(double HR, double MPH) {
+		double TC = computeEstimatedTC(HR);
+		addRawHR(HR);
+		addRawTC(TC);
+		addRawMPH(MPH);
+	}
+
 	/**
 	 * Adds a heart rate value to time series ArrayList. Does minor filtering
 	 * @param hr The heart rate value to be added
@@ -239,17 +245,15 @@ public class DataManager {
 
 	/**
 	 * Adds a speed value to the time series ArrayList. Does minor filtering
-	 * @param rp
+	 * @param mph
 	 */
-	public void addRawRPM(double rp){
+	public void addRawMPH(double mph){
 		//filter by limits
 		double MIN=0;
-		double MAX=110;
-		if(rp>MAX || rp<MIN)return;
-		lastGoodRPM=rp;
-		float mph=chamber.computeSpeedMPH((float)rp);
-		
-		rawSpeed.add(Double.valueOf(mph));
+		double MAX=11;
+		if(mph>MAX || mph<MIN)return;
+		lastGoodMPH=mph;
+		rawSpeed.add(mph);
 	}
 
 	/**
@@ -273,10 +277,12 @@ public class DataManager {
 	}
 
 	/**
-	 * Computes the distance traveled from the start.
-	 * @param epochTimeMillis Milliseconds since distance was last computed
+	 * Updates the distance traveled field
 	 */
-	public void computeDistance(long epochTimeMillis){
+	public void computeDistance(){
+		long time = new Date().getTime();
+		long epochTimeMillis = time - lastDistanceCompute;
+
 		// Compute how far has been traveled so far
 		double time_travelled = ((double)epochTimeMillis/(double)(1000*60*60));
 		double dist = getCurrent(smoothedSpeed) * time_travelled;
@@ -287,6 +293,7 @@ public class DataManager {
 		// Add the distance computed to the total distance travelled
 		distanceCompleted = distanceCompleted + dist;
 		Log.w("DataManager","Completed Distance: " + distanceCompleted);
+		lastDistanceCompute = time;
 	}
 
 	/**
@@ -295,7 +302,10 @@ public class DataManager {
 	public void startSession(){
 		distanceCompleted = 0;
 		startIndex = smoothedHR.size();
-		computeGuidance(0);
+
+		// Set the start time
+		startTime = new Date().getTime();
+		computeGuidance();
 
 		//set Tcore at start of run
 		double currentTc=getCurrent(smoothedTC);
@@ -314,10 +324,14 @@ public class DataManager {
 	/**
 	 * Computes guidance with policy, adds it to guidance time series, and returns the guidance.
 	 * This function draws upon the currently stored distance data to compute.
-	 * @param time The current time in the run
 	 * @return A double representing the guidance move speed
 	 */
-	public double computeGuidance(long time){
+	public double computeGuidance(){
+
+		// Compute how long it's been since the run started
+		long time = new Date().getTime();
+		time = time - startTime;
+
 		//Compute guidance at two minutes
 		double pol=policy.getPolicy(time, distanceCompleted, getCurrent(E_PSI));
 		
@@ -344,13 +358,6 @@ public class DataManager {
 		//Log.w("DataManager","Policy:"+pol+ " Time="+time+" Dist="+dist+" PSI="+getCurrent(E_PSI));
 
 		return pol;
-	}
-
-	/**
-	 * Adds a 0 to the guidance list
-	 */
-	public void setZeroGuidance(){
-		guidance.add(0.0);
 	}
 
 	/**

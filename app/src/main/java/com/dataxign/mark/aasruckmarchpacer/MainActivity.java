@@ -54,7 +54,9 @@ public class MainActivity extends Activity {
     private LocationPoint currentLocation;
     private long updateTime = 0, updateInterval = 0, lastSmoothUpdate = 0;
     private DataSmoother moveData;
+
     private double desiredSpeed = 2.5; // mph
+    private double speed;
 
     // For sensor stuff
     private int HR, Battery;
@@ -62,6 +64,10 @@ public class MainActivity extends Activity {
 
     // Data manager
     public DataManager dm;
+    private long lastGuidanceCompute;
+    private long lastDataSmooth;
+    private final int GUIDANCE_INTERVAL_MILLIS = 120000;
+    private final int SMOOTH_INTERVAL_MILLIS = 60000;
 
     // Route stuff
     Route route = null;
@@ -97,6 +103,9 @@ public class MainActivity extends Activity {
 
         // Initialize Sensor
         initSensor(0);
+
+        // Initialize data manager
+        dm = new DataManager(37.1,0,getResources(),new File("output.csv"),getApplicationContext());
 
         //Initialize the UI manager
         handler = new Handler();
@@ -221,12 +230,6 @@ public class MainActivity extends Activity {
         oban = new ObanSensor(1, getApplicationContext(), this);
     }
 
-    /**
-     * This function initializes the apps data manager
-     */
-    private void initDataManager(File fp) {
-        dm = new DataManager(37.1,1.5,getResources(),fp,getApplicationContext());
-    }
 
     /**
      * This is the LocationListener class. It triggers the onLocationChanged() method when the
@@ -271,6 +274,9 @@ public class MainActivity extends Activity {
     private void handleCurrentLocation(Location local) {
         Log.w("LocUpdate", "Location: " + local);
         if (local != null) {
+
+            speed = local.getSpeed();
+
             // Update the latitude and longitude on the UI
             lat_raw.setText("" + local.getLatitude());
             lon_raw.setText("" + local.getLongitude());
@@ -342,10 +348,10 @@ public class MainActivity extends Activity {
      * Updates the UI and gets data from the sensor
      */
     private void handleCurrentSensor() {
-        int HR = oban.getHR();
-        int batt = oban.getBattery();
+        HR = oban.getHR();
+        Battery = oban.getBattery();
         heart_rate.setText(String.valueOf(HR));
-        battery.setText(String.valueOf(batt));
+        battery.setText(String.valueOf(Battery));
     }
 
     /**
@@ -363,14 +369,6 @@ public class MainActivity extends Activity {
         return loc;
     }
 
-    private void updateDataManager() {
-        // TODO Get data from HR sensor
-        // TODO Convert that HR into TC
-        // TODO Get the RPM value
-
-        // TODO Add all three to DataManager
-    }
-
     /**
      * This runnable is the system loop.
      */
@@ -380,19 +378,32 @@ public class MainActivity extends Activity {
             // Get the current system time
             long currentTime=System.currentTimeMillis();
 
-            // If it's time for the data to be smoothed
-            if(currentTime-lastSmoothUpdate>=SMOOTHING_INTERVAL_MILLIS){
+            // Get the current location and handle the current location
+            Location loc=getCurrentLocation();
+            handleCurrentLocation(loc);
+
+            // Get the data from the sensor and update the data manager
+            handleCurrentSensor();
+            dm.update(HR,speed);
+
+            // If it's time for the data to be smoothed for UI
+            if(currentTime-lastSmoothUpdate >= SMOOTHING_INTERVAL_MILLIS) {
                 moveData.smoothData();
                 lastSmoothUpdate=currentTime;
             }
 
-            // Get the current location
-            Location loc=getCurrentLocation();
-            handleCurrentLocation(loc);
+            // If it's time for the data to be smoothed for DataManager
+            if(currentTime-lastDataSmooth >= SMOOTH_INTERVAL_MILLIS) {
+                dm.computeMinuteValues();
+                dm.computeDistance();
+                lastDataSmooth = currentTime;
+            }
 
-            handleCurrentSensor();
-
-            // TODO Update the DataManager
+            // If it's time to compute a new guidance
+            if (currentTime-lastGuidanceCompute >= GUIDANCE_INTERVAL_MILLIS) {
+                desiredSpeed = dm.computeGuidance(); // Set the desired speed to the new guidance
+                lastGuidanceCompute = currentTime;
+            }
 
             // Tell Android the the map has been changed and needs to be redrawn ASAP
             map.postInvalidate();
