@@ -1,6 +1,4 @@
-package com.dataxign.mark.aasruckmarchpacer;
-
-import android.util.Log;
+package com.dataxign.mark.aasruckmarchpacer.geo;
 
 /**
  * Created by Mark on 3/18/2016.

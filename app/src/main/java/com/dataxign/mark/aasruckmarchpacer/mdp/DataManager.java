@@ -5,7 +5,7 @@
  * Edited 6/1/2022 by Peter Finch
  */
 
-package com.dataxign.mark.aasruckmarchpacer;
+package com.dataxign.mark.aasruckmarchpacer.mdp;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -19,6 +19,8 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.util.Log;
 import android.widget.Toast;
+
+import com.dataxign.mark.aasruckmarchpacer.functions.USARIEM;
 
 public class DataManager {
 
@@ -34,58 +36,33 @@ public class DataManager {
 	public final static int E_PSI=9;
 	public final static int DIST=10;
 	public final static int GUID=11;
-	
-	// These fields hold the timeseries data
+
 	private ArrayList<Double> rawHR;
 	private ArrayList<Double> rawTC;
 	private ArrayList<Double> rawSpeed;
+
 	private ArrayList<Double> smoothedHR;
 	private ArrayList<Double> smoothedTC;
 	private ArrayList<Double> smoothedSpeed;
+
 	private ArrayList<Double> estTC;
 	private ArrayList<Double> obsPSI;
 	private ArrayList<Double> estPSI;
+
 	private ArrayList<Double> distance;
 	private ArrayList<Double> guidance;
 
-	// Used for storing the previous values of core temp and velocity
 	public double lastGoodHR=0;
 	public double lastGoodTC=0;
 	public double lastGoodMPH=0;
-
-	// These fields store information about the session
-	private double sessionStartDistance=0;
-	private double sessionTime=0;
-	private int startIndex=0;
 	public double distanceCompleted=0;
 
 	private long startTime;
 	private long lastDistanceCompute;
 
-	// Used for conversion
-	public final static float NUMBER_OF_FEET_IN_MILE=5280;
-
-	// Objects that the DataManager uses
-	public Chamber chamber;
-	public Policy policy; // Policy to provide guidance
+	private Policy policy;
 	private KalmanState ks=new KalmanState();
-	
-	private File fileName;
-	private final String fileNameBase = "PacingStudyData";
 
-	public String ssid="None"; // Service Set Identifier
-	public int chamberID=0;
-	public int session=0;
-	public int sessionMin=0;
-	
-	public int rpe=-999;
-	public int thermal=-999;
-	public int feeling=-999;
-	
-	public double unadjustedGuidance=0;
-	
-	private boolean fileOutputGood=true;
-	
 	private Context appCntx;
 
 	/**
@@ -97,8 +74,6 @@ public class DataManager {
 	 * @param cx App context
 	 */
 	public DataManager(double TCstart, double Vstart, Resources r, File fp, Context cx){
-		appCntx=cx;
-		chamber=new Chamber();
 		rawHR=new ArrayList<Double>();
 		rawTC=new ArrayList<Double>();
 		rawSpeed=new ArrayList<Double>();
@@ -112,148 +87,36 @@ public class DataManager {
 		estPSI=new ArrayList<Double>();
 		distance=new ArrayList<Double>();
 		guidance=new ArrayList<Double>();
-		
-		// Load the policy
+
 		policy=new Policy(r);
-
-		// Create the file to record the data in
-		Date dt = new Date();
-		Timestamp ts = new Timestamp(dt.getTime());
-		String fileDate = "" + ts;
-		fileName = new File(fp, fileNameBase + fileDate + ".csv");
-		createFile();
+		appCntx=cx;
 	}
 
 	/**
-	 * Initialize a file to write the data to
+	 * Updates the RAW values of the data manager
+	 * @param HR The heart rate
+	 * @param MPH The speed in mph
 	 */
-	public void createFile(){
-		try {
-			OutputStream os = new FileOutputStream(fileName, true);
-
-			String outs = "Using Policy Function: "+policy.policyFileName+"\n";
-			outs=outs+"time,ssid,chamber,session,runmin,rawHR,rawTC,rawSpd,minHR,minTC,minSpd,obsPSI, estTC, estPSI,distance,guidance,rpe,thermal,feeling,actualDist,timeIdx,distIdx,psiIdx,unadjustedGuidance\n";
-
-			byte[] out = outs.getBytes();
-			os.write(out);
-			os.close();
-			Log.i("DataManager","Writing File: " + fileName.toString());
-
-		}
-		catch (IOException e) {
-			fileOutputGood=false;
-			Log.e("DataManager","Error opening file" + fileName.toString() + "  " + e);
-            Toast.makeText(appCntx, "NO DATA LOGGING", Toast.LENGTH_SHORT).show();
-
-		}
-
-	}
-
-	/**
-	 * Post an update to the data file
-	 */
-	public void writeToFile() {
-		String outs = "";
-		try {
-			OutputStream os = new FileOutputStream(fileName, true);
-
-			// Write real data here if fail OK just ignore
-			Date dt = new Date();
-			Timestamp ts = new Timestamp(dt.getTime());
-
-			outs = "" + ts + "," + ssid + ","+chamberID+","+session+","+sessionMin+",";
-			
-			for(int i=1;i<=11;i++){
-				if(i==this.E_TC || i==this.E_PSI) outs=outs+getCurrent(i) + ",";
-				else outs=outs+String.format("%2.2f", getCurrent(i)) + ",";
-			}
-			outs=outs+rpe+","+thermal+","+feeling+","+policy.tIdx+","+ this.distanceCompleted+","+policy.dIdx+","+policy.pIdx+","+policy.unGuide+"\n";
-
-			byte[] out = outs.getBytes();
-			os.write(out);
-			os.close();
-			fileOutputGood=true;
-		}
-		catch (IOException e) {
-			fileOutputGood=false;
-			Log.e("DataManager","BAD DATA WRITE: " + outs + "  " + e);
-            Toast.makeText(appCntx, "!ALERT!     NO DATA LOGGING     !ALERT!", Toast.LENGTH_SHORT).show();
-			
-		}
-	}
-
-	/**
-	 * Writes a marker into the data file
-	 * @param marker A custom message that will be written in the file
-	 */
-	public void writeMarkerToFile(String marker) {
-		String outs = "";
-		try {
-			OutputStream os = new FileOutputStream(fileName, true);
-
-			// Write real data here if fail OK just ignore
-			Date dt = new Date();
-			Timestamp ts = new Timestamp(dt.getTime());
-
-			outs = marker+"\n";
-
-			byte[] out = outs.getBytes();
-			os.write(out);
-			os.close();
-			fileOutputGood=true;
-		}
-		catch (IOException e) {
-			fileOutputGood=false;
-			Log.e("DataManager","BAD DATA WRITE: " + outs + "  " + e);
-            Toast.makeText(appCntx, "!ALERT!     NO DATA LOGGING     !ALERT!", Toast.LENGTH_SHORT).show();
-			
-		}
-	}
-
 	public void update(double HR, double MPH) {
 		double TC = computeEstimatedTC(HR);
-		addRawHR(HR);
-		addRawTC(TC);
-		addRawMPH(MPH);
-	}
 
-	/**
-	 * Adds a heart rate value to time series ArrayList. Does minor filtering
-	 * @param hr The heart rate value to be added
-	 */
-	public void addRawHR(double hr){
-		//filter by limits
-		double MIN=30;
-		double MAX=220;
-		if(hr>MAX || hr<MIN)return;
-		lastGoodHR=hr;
-		rawHR.add(Double.valueOf(hr));
-	}
+		// Add the heart rate
+		if (!(HR>220 || HR<40)) {
+			lastGoodHR = HR;
+			rawHR.add(Double.valueOf(HR));
+		}
 
-	/**
-	 * Adds a core temp value to the time series ArrayList. Does minor filtering
-	 * @param tc
-	 */
-	public void addRawTC(double tc){
-		//filter by limits
-		double MIN=20.0;
-		double MAX=42.5;
-		if(tc>MAX || tc<MIN)return;
-		lastGoodTC=tc;
-		rawTC.add(Double.valueOf(tc));
-	}
+		// Add the core temp
+		if (!(TC>20.0 || TC<42.5)) {
+			lastGoodTC = TC;
+			rawTC.add(Double.valueOf(TC));
+		}
 
-	/**
-	 * Adds a speed value to the time series ArrayList. Does minor filtering
-	 * @param mph
-	 */
-	public void addRawMPH(double mph){
-		//filter by limits
-		double MIN=0;
-		double MAX=11;
-		if(mph>MAX || mph<MIN)return;
-		lastGoodMPH=mph;
-		rawSpeed.add(mph);
+		// Add the speed in mph
+		if (!(MPH>11 || MPH<0)) {
+			lastGoodMPH = MPH;
+			rawSpeed.add(MPH);
+		}
 	}
 
 	/**
@@ -270,16 +133,13 @@ public class DataManager {
 		obsPSI.add(computePSI(getCurrent(smoothedTC),getCurrent(smoothedHR)));
 		estTC.add(computeEstimatedTC(getCurrent(smoothedHR)));
 		estPSI.add(computePSI(getCurrent(estTC),getCurrent(smoothedHR)));
-		
-		//don't forget the speed computations etc.
-		//Compute the minute distance
-		//distance.add(getCurrent(smoothedSpeed)/60);
 	}
 
 	/**
 	 * Updates the distance traveled field
 	 */
 	public void computeDistance(){
+		// Figure out how much time has passed since distance last computed
 		long time = new Date().getTime();
 		long epochTimeMillis = time - lastDistanceCompute;
 
@@ -297,13 +157,27 @@ public class DataManager {
 	}
 
 	/**
+	 * Computes guidance with policy, adds it to guidance time series, and returns the guidance.
+	 * This function draws upon the currently stored distance data to compute.
+	 * @return A double representing the guidance move speed
+	 */
+	public double computeGuidance(){
+		// Compute how long it's been since the run started
+		long time = new Date().getTime();
+		time = time - startTime;
+
+		//Compute guidance at two minutes
+		double pol=policy.getPolicy(time, distanceCompleted, getCurrent(E_PSI));
+		guidance.add(pol);
+
+		return pol;
+	}
+
+	/**
 	 * Initializes the data manager to be run.
 	 */
 	public void startSession(){
 		distanceCompleted = 0;
-		startIndex = smoothedHR.size();
-
-		// Set the start time
 		startTime = new Date().getTime();
 		computeGuidance();
 
@@ -311,53 +185,12 @@ public class DataManager {
 		double currentTc=getCurrent(smoothedTC);
 
 		//If an appropriate value is not possible for TCore then will use the default of 37.1
-		if(currentTc>=35.5 && currentTc<38.5){
-			ks.currentTC=currentTc;
-		}
+		if(currentTc>=35.5 && currentTc<38.5){ ks.currentTC=currentTc; }
 
 		// Empty out the system time series
 		rawHR.clear();
 		rawTC.clear();
 		rawSpeed.clear();
-	}
-
-	/**
-	 * Computes guidance with policy, adds it to guidance time series, and returns the guidance.
-	 * This function draws upon the currently stored distance data to compute.
-	 * @return A double representing the guidance move speed
-	 */
-	public double computeGuidance(){
-
-		// Compute how long it's been since the run started
-		long time = new Date().getTime();
-		time = time - startTime;
-
-		//Compute guidance at two minutes
-		double pol=policy.getPolicy(time, distanceCompleted, getCurrent(E_PSI));
-		
-		//adjust for chamber calibration
-		pol=chamber.treadmillSpeedSetting((float)pol);
-		guidance.add(pol);
-		//Log.w("DataManager","Policy:"+pol+ " Time="+time+" Dist="+getCurrent(DIST)+" PSI="+getCurrent(E_PSI));
-
-		return pol;
-	}
-
-	/**
-	 * Computes guidance with policy, adds it to guidance time series, and returns the guidance.
-	 * This function takes a distance as an argument
-	 * @param time The current time in the run
-	 * @param dist The current distance in the run
-	 * @return A double representing the guidance move speed
-	 */
-	public double computeGuidance(long time, double dist){
-		//Compute guidance at two minutes
-		double pol=policy.getPolicy(time, dist, getCurrent(E_PSI));
-		pol=chamber.treadmillSpeedSetting((float)pol);
-		guidance.add(pol);
-		//Log.w("DataManager","Policy:"+pol+ " Time="+time+" Dist="+dist+" PSI="+getCurrent(E_PSI));
-
-		return pol;
 	}
 
 	/**
@@ -461,23 +294,5 @@ public class DataManager {
 		//lastTC=ks.currentTC;
 		//lastV=ks.currentV;
 		return ks.currentTC;
-	}
-
-	/**
-	 * Returns the state of the Kalman model as a string.
-	 * @return
-	 */
-	public String getKalmanState(){
-		return(""+ks.whosModel+": sigma="+ks.sigma+", gamma="+ks.gamma+"\nb_0="+ks.b_0+", b_1="+ks.b_1+", b_2="+ks.b_2);
-	}
-
-	/**
-	 * Sets the state of the Kalman model.
-	 * @param who The string that holds the state of the model
-	 * @return The new Kalman state
-	 */
-	public String setKalmanState(String who){
-		ks.setModel(who);
-		return getKalmanState();
 	}
 }

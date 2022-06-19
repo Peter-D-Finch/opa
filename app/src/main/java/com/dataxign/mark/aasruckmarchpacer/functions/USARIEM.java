@@ -2,7 +2,9 @@
  * A class of helper functions to compute physiological indices and estimates
  */
 
-package com.dataxign.mark.aasruckmarchpacer;
+package com.dataxign.mark.aasruckmarchpacer.functions;
+
+import com.dataxign.mark.aasruckmarchpacer.mdp.KalmanState;
 
 /**
  *

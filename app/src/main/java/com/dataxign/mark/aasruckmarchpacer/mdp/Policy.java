@@ -1,4 +1,4 @@
-package com.dataxign.mark.aasruckmarchpacer;
+package com.dataxign.mark.aasruckmarchpacer.mdp;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -8,6 +8,8 @@ import java.util.StringTokenizer;
 
 import android.content.res.Resources;
 import android.util.Log;
+
+import com.dataxign.mark.aasruckmarchpacer.R;
 
 public class Policy {
 	

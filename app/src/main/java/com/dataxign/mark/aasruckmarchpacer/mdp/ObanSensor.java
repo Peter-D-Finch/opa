@@ -3,7 +3,7 @@
  * 6/11/2022
  */
 
-package com.dataxign.mark.aasruckmarchpacer;
+package com.dataxign.mark.aasruckmarchpacer.mdp;
 
 import android.Manifest;
 import android.annotation.SuppressLint;

@@ -14,7 +14,6 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
-import android.content.res.Configuration;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -29,6 +28,14 @@ import android.widget.TextView;
 
 import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
+
+import com.dataxign.mark.aasruckmarchpacer.functions.HelperStuff;
+import com.dataxign.mark.aasruckmarchpacer.geo.LocationPoint;
+import com.dataxign.mark.aasruckmarchpacer.geo.Route;
+import com.dataxign.mark.aasruckmarchpacer.geo.Segment;
+import com.dataxign.mark.aasruckmarchpacer.mdp.DataManager;
+import com.dataxign.mark.aasruckmarchpacer.mdp.DataSmoother;
+import com.dataxign.mark.aasruckmarchpacer.mdp.ObanSensor;
 
 import java.io.File;
 
@@ -49,13 +56,14 @@ public class MainActivity extends Activity {
     // For location logic
     private LocationManager locationManager;
     private MainLocationListener locationListener;
-    private Location location, lastLocation;
+    private Location location;
+    private Location lastLocation;
     private boolean isGPSEnabled, isCellularEnabled;
     private LocationPoint currentLocation;
     private long updateTime = 0, updateInterval = 0, lastSmoothUpdate = 0;
     private DataSmoother moveData;
 
-    private double desiredSpeed = 2.5; // mph
+    private double desiredSpeed = 0; // mph
     private double speed;
 
     // For sensor stuff
@@ -71,7 +79,6 @@ public class MainActivity extends Activity {
 
     // Route stuff
     Route route = null;
-    State state = null;
 
     /**
      * This is Android's initialization function. It runs when the app is started up.
@@ -216,7 +223,6 @@ public class MainActivity extends Activity {
     private void initRoute() {
         int whichRoute = 0; //Will be used to specify predefined routes
         route = new Route(getResources(), whichRoute);
-        state = new State();
         map.updateRoute(route);
     }
 
@@ -229,7 +235,6 @@ public class MainActivity extends Activity {
         Log.e("initSensor","OBAN sensor initialized: #"+device_num);
         oban = new ObanSensor(1, getApplicationContext(), this);
     }
-
 
     /**
      * This is the LocationListener class. It triggers the onLocationChanged() method when the
@@ -345,16 +350,6 @@ public class MainActivity extends Activity {
     }
 
     /**
-     * Updates the UI and gets data from the sensor
-     */
-    private void handleCurrentSensor() {
-        HR = oban.getHR();
-        Battery = oban.getBattery();
-        heart_rate.setText(String.valueOf(HR));
-        battery.setText(String.valueOf(Battery));
-    }
-
-    /**
      * Retrieves the last known location from the LocationListener.
      * @return The last known location
      */
@@ -367,6 +362,16 @@ public class MainActivity extends Activity {
             Log.e("MainAct", "GPS Security Permission Exception "+e);
         }
         return loc;
+    }
+
+    /**
+     * Updates the UI and gets data from the sensor
+     */
+    private void handleCurrentSensor() {
+        HR = oban.getHR();
+        Battery = oban.getBattery();
+        heart_rate.setText(String.valueOf(HR));
+        battery.setText(String.valueOf(Battery));
     }
 
     /**
@@ -391,14 +396,12 @@ public class MainActivity extends Activity {
                 moveData.smoothData();
                 lastSmoothUpdate=currentTime;
             }
-
             // If it's time for the data to be smoothed for DataManager
             if(currentTime-lastDataSmooth >= SMOOTH_INTERVAL_MILLIS) {
-                dm.computeMinuteValues();
-                dm.computeDistance();
-                lastDataSmooth = currentTime;
+                dm.computeMinuteValues(); // Compute the smoothed 1-min values
+                dm.computeDistance(); // Update the distance
+                lastDataSmooth = currentTime; // The last time we updated was now
             }
-
             // If it's time to compute a new guidance
             if (currentTime-lastGuidanceCompute >= GUIDANCE_INTERVAL_MILLIS) {
                 desiredSpeed = dm.computeGuidance(); // Set the desired speed to the new guidance

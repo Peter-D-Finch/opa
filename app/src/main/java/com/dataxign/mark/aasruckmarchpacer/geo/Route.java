@@ -1,7 +1,9 @@
-package com.dataxign.mark.aasruckmarchpacer;
+package com.dataxign.mark.aasruckmarchpacer.geo;
 
 import android.content.res.Resources;
 import android.util.Log;
+
+import com.dataxign.mark.aasruckmarchpacer.R;
 
 import java.io.BufferedReader;
 import java.io.IOException;
