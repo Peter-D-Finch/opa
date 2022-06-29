@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.NoSuchElementException;
 import java.util.StringTokenizer;
 
 import android.content.res.Resources;
@@ -41,17 +42,24 @@ public class Policy {
 		long startTime=System.currentTimeMillis();
 		Log.w("Policy", "Reading Policy... (Can take a while)");
 
-		//BufferedReader in = new BufferedReader(new InputStreamReader(rs.openRawResource(R.raw.policy_7_5_actual_relax1029)));
-		//policyFileName="policy_7_5_actual_relax1029.csv";
 		BufferedReader in = new BufferedReader(new InputStreamReader(rs.openRawResource(R.raw.policy_7_5_actual_relaxsmooth0120)));
 		policyFileName="policy_7_5_actual_relaxsmooth0120.csv";
 		try{
 			for(int tp=0;tp<NUMBER_OF_TIME_PERIODS;tp++){
 				for(int npsi=0;npsi<NUMBER_OF_PSIS;npsi++){
 					String distances=in.readLine();
-					StringTokenizer st=new StringTokenizer(distances,",");
+					StringTokenizer st = new StringTokenizer(distances,",");
 					for (int dist=0;dist<NUMBER_OF_DISTANCES;dist++){
-						policy[tp][npsi][dist]=Integer.parseInt(st.nextToken());
+						try {
+							String temp = st.nextToken();
+							try {
+								policy[tp][npsi][dist] = Integer.parseInt(temp);
+							} catch (NumberFormatException nfe) {
+								policy[tp][npsi][dist] = 0;
+							}
+						} catch (NoSuchElementException nsee) {
+							String temp = "0";
+						}
 					}
 				}
 			}

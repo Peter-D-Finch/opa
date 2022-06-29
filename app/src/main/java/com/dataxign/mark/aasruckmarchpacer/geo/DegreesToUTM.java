@@ -1,5 +1,7 @@
 package com.dataxign.mark.aasruckmarchpacer.geo;
 
+import com.dataxign.mark.aasruckmarchpacer.geo.LocationPoint;
+
 /**
  * Created by Mark on 3/18/2016.
  * This class converts degrees latitude and longitude to UTM

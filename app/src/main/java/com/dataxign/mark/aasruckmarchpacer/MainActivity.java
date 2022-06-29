@@ -34,19 +34,21 @@ import com.dataxign.mark.aasruckmarchpacer.geo.LocationPoint;
 import com.dataxign.mark.aasruckmarchpacer.geo.Route;
 import com.dataxign.mark.aasruckmarchpacer.geo.Segment;
 import com.dataxign.mark.aasruckmarchpacer.mdp.DataManager;
-import com.dataxign.mark.aasruckmarchpacer.mdp.DataSmoother;
+import com.dataxign.mark.aasruckmarchpacer.geo.DataSmoother;
 import com.dataxign.mark.aasruckmarchpacer.mdp.ObanSensor;
-
-import java.io.File;
 
 public class MainActivity extends Activity {
 
     private final int UI_UPDATE_TIME_MILLIS = 1000;
     private final int SMOOTHING_INTERVAL_MILLIS = 6000;
-    private Handler handler = null;
 
-    //Widgets
-    private TextView lat_raw, lon_raw, easting, northing, updateFreq, speedinst, speedave, headinginst, headingave, segmentnum, segmenthead, segmentdist;
+    private Handler handler = null;
+    private Activity act = this;
+
+    //Widgets for user interface
+    private TextView lat_raw, lon_raw, easting, northing, updateFreq;
+    private TextView speedinst, speedave, headinginst, headingave;
+    private TextView segmentnum, segmenthead, segmentdist;
     private EditText roster_num_input;
     private TextView heart_rate, battery;
     private Button button_start, button_mode;
@@ -57,33 +59,22 @@ public class MainActivity extends Activity {
     private LocationManager locationManager;
     private MainLocationListener locationListener;
     private Location location;
-    private Location lastLocation;
-    private boolean isGPSEnabled, isCellularEnabled;
     private LocationPoint currentLocation;
     private long updateTime = 0, updateInterval = 0, lastSmoothUpdate = 0;
     private DataSmoother moveData;
 
-    private double desiredSpeed = 0; // mph
-    private double speed;
+    private double guidance = 0; // The guidance speed
+    private double speed; // The subjects current speed
+    private int HR; // The subjects current heart rate
+    private int Battery; // The current sensor battery
 
-    // For sensor stuff
-    private int HR, Battery;
-    public ObanSensor oban;
+    public ObanSensor sensor;
 
     // Data manager
     public DataManager dm;
-    private long lastGuidanceCompute;
-    private long lastDataSmooth;
-    private final int GUIDANCE_INTERVAL_MILLIS = 120000;
-    private final int SMOOTH_INTERVAL_MILLIS = 60000;
-
-    // Route stuff
     Route route = null;
 
-    /**
-     * This is Android's initialization function. It runs when the app is started up.
-     * @param savedInstanceState Don't know what this is...
-     */
+    // Initialization functions
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -108,20 +99,13 @@ public class MainActivity extends Activity {
         //Initialize the route for the app
         initRoute();
 
-        // Initialize Sensor
-        initSensor(0);
-
         // Initialize data manager
-        dm = new DataManager(37.1,0,getResources(),new File("output.csv"),getApplicationContext());
+        dm = new DataManager(getResources(),getApplicationContext());
 
         //Initialize the UI manager
         handler = new Handler();
         handler.post(activityUIManager);
     }
-
-    /**
-     * This function initializes all of the UI objects
-     */
     private void initUI() {
         lat_raw = (TextView) findViewById(R.id.lat_raw);
         lon_raw = (TextView) findViewById(R.id.lon_raw);
@@ -146,9 +130,7 @@ public class MainActivity extends Activity {
         button_start = (Button) findViewById(R.id.buttonStart);
         button_start.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                //change state to started route.
-                //Check whether on the segment 0 if not then ignore
-                //button_start.setEnabled(false);
+                dm.startSession();
             }
         });
 
@@ -171,38 +153,18 @@ public class MainActivity extends Activity {
             public void onClick(View v) {
                 String roster_num_str = roster_num_input.getText().toString();
                 int roster_num = Integer.parseInt(roster_num_str);
-                initSensor(roster_num);
+                sensor = new ObanSensor(roster_num, getApplicationContext(), act);
             }
         });
         moveData = new DataSmoother();
     }
-
-    /**
-     * This function initializes everything that has to do with location.
-     */
     @TargetApi(Build.VERSION_CODES.M)
-    protected void initLocations() {
+    private void initLocations() {
         currentLocation = new LocationPoint();
-        //creating an instance of the location listener, a subclass to the main activity
         locationListener = new MainLocationListener();
-        //creating an instance of the location manager, which controls the location services
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-        //setting the boolean isGPSEnabled to flag whether or not the location services has access to hardware
-        //GPS sensor or not.  This sensor will operate without Network connectivity
-        //NOTE that this sensor was not accessable until after the phone was able to talk to Google's servers for location
-        //services, but only needed access once, then it worked reliablely when disconnected from the internet
-        //NOTE that this also will turn up false if the application does not have permission to access the location service for "FineLocation"
-        isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-        //setting the boolean isCellularEnabled to flag whether or not the location services has access to
-        //location through network provider.  this requires network connection
-        isCellularEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-
-        //if GPS Sensor is accessible to the application, then complete the code block
+        boolean isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
         if (isGPSEnabled) {
-            Log.e("Main", "GPS Enabled");
-            //request every 100 milliseconds    TODO make that a constant at the top
-            //request updates at 1 meter         // TODO: 1/5/2016 make that a constant
-
             // Checking if the app has the proper permissions
             int pg = PackageManager.PERMISSION_GRANTED;
             boolean afl_perm = checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != pg;
@@ -211,15 +173,8 @@ public class MainActivity extends Activity {
 
             // Subscribing the locationManager to the locationListener
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 100, 1, locationListener);
-        }
-        else{
-            Log.e("Main","GPS NOT Enabled");
-        }
+        } else { Log.e("Main","GPS NOT Enabled"); }
     }
-
-    /**
-     * This function initializes the Route for the run
-     */
     private void initRoute() {
         int whichRoute = 0; //Will be used to specify predefined routes
         route = new Route(getResources(), whichRoute);
@@ -227,59 +182,36 @@ public class MainActivity extends Activity {
     }
 
     /**
-     * This function initializes the apps OBAN sensor
-     * @param device_num The configuration number of the user's OBAN sensor
-     */
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    private void initSensor(int device_num) {
-        Log.e("initSensor","OBAN sensor initialized: #"+device_num);
-        oban = new ObanSensor(1, getApplicationContext(), this);
-    }
-
-    /**
      * This is the LocationListener class. It triggers the onLocationChanged() method when the
      * location is updated from the Android location service.
      */
-    public class MainLocationListener implements LocationListener {
-        public MainLocationListener() {
-            Log.v("inits", "Just Created a LocationListener");
-        }
-        protected void saveData(Location local) {
-            //adds a datapoint to temp data with the location data
-            //tempData.add(new DataPoints(DataPoints.INDICATOR_GPS, local, lastLocation));
-            //adds a datapoint to GPS  data with the location data
-            //gpsData.add(new DataPoints(DataPoints.INDICATOR_GPS, local, lastLocation));
-        }
-        @Override
-        public void onLocationChanged(Location local) {
-            //reassigning the global last location field
-            lastLocation = location;
-            //assigning the global location field
-            location = local;
-            //handleCurrentLocation(local);
-        }
-        @Override
-        public void onStatusChanged(String provider, int status, Bundle extras) {
-            //not implemented or used
-        }
-        @Override
-        public void onProviderEnabled(String provider) {
-            //not implemented or used
-        }
-        @Override
-        public void onProviderDisabled(String provider) {
-            //not implemented or used
-        }
+    private class MainLocationListener implements LocationListener {
+        public MainLocationListener() { Log.v("init", "Just Created a LocationListener"); }
+        public void onLocationChanged(Location local) { location = local; }
     };
+
+    /**
+     * Retrieves the last known location from the LocationListener.
+     * @return The last known location
+     */
+    private Location getCurrentLocation(){
+        Location loc=null;
+        try {
+            loc = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            handleCurrentLocation(loc);
+        }
+        catch(SecurityException e){
+            Log.e("MainAct", "GPS Security Permission Exception "+e);
+        }
+        return loc;
+    }
 
     /**
      * Updates UI and system variables given a location
      * @param local The user's current location
      */
     private void handleCurrentLocation(Location local) {
-        Log.w("LocUpdate", "Location: " + local);
         if (local != null) {
-
             speed = local.getSpeed();
 
             // Update the latitude and longitude on the UI
@@ -325,9 +257,7 @@ public class MainActivity extends Activity {
                 segmentnum.setText("Segment #: "+snap.currentSegment);
                 segmenthead.setText("Segment Heading: "+HelperStuff.trimIt(s.heading,2));
                 segmentdist.setText("Distsance Along Segment = "+HelperStuff.trimIt(snap.distanceAlongSegment,2));
-            }
-            // Else something must be very broken, let's hope this never happens
-            else {
+            } else {
                 segmentnum.setText("Segment #: None");
                 segmenthead.setText("Segment Heading: None");
                 segmentdist.setText("Distsance Along Segment = WHO KNOWS?");
@@ -337,81 +267,49 @@ public class MainActivity extends Activity {
             }
 
             // Update the guidance UI to provide speed guidance based on how fast user currently moving
-            if(moveData.getMovingAverageSpeed()<desiredSpeed)map.speedGraphic=MapChart_CustomView.SPEED_FASTER;
-            if(moveData.getMovingAverageSpeed()>desiredSpeed)map.speedGraphic=MapChart_CustomView.SPEED_SLOWER;
-            if(Math.abs(moveData.getMovingAverageSpeed() - desiredSpeed)<0.2)map.speedGraphic=MapChart_CustomView.SPEED_OK;
-            //Log.e("MainAct: ","Des Speed: "+desiredSpeed+ " Actual Speed: "+moveData.getLastSpeed()+" Map Graphic: "+map.speedGraphic);
+            if(moveData.getMovingAverageSpeed()<guidance)map.speedGraphic=MapChart_CustomView.SPEED_FASTER;
+            if(moveData.getMovingAverageSpeed()>guidance)map.speedGraphic=MapChart_CustomView.SPEED_SLOWER;
+            if(Math.abs(moveData.getMovingAverageSpeed() - guidance)<0.2)map.speedGraphic=MapChart_CustomView.SPEED_OK;
 
             map.setLocation(currentLocation);
-
-            // Tell Android that the map has been changed and needs to be redrawn ASAP
             map.postInvalidate();
         }
-    }
-
-    /**
-     * Retrieves the last known location from the LocationListener.
-     * @return The last known location
-     */
-    private Location getCurrentLocation(){
-        Location loc=null;
-        try {
-            loc = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-        }
-        catch(SecurityException e){
-            Log.e("MainAct", "GPS Security Permission Exception "+e);
-        }
-        return loc;
     }
 
     /**
      * Updates the UI and gets data from the sensor
      */
     private void handleCurrentSensor() {
-        HR = oban.getHR();
-        Battery = oban.getBattery();
-        heart_rate.setText(String.valueOf(HR));
-        battery.setText(String.valueOf(Battery));
+        if (sensor != null) {
+            HR = sensor.getHR();
+            Battery = sensor.getBattery();
+            heart_rate.setText(String.valueOf(HR));
+            battery.setText(String.valueOf(Battery));
+        }
     }
 
     /**
      * This runnable is the system loop.
      */
     private Runnable activityUIManager = new Runnable() {
-        private boolean updateMinuteValues = true;
         public void run() {
             // Get the current system time
             long currentTime=System.currentTimeMillis();
-
-            // Get the current location and handle the current location
-            Location loc=getCurrentLocation();
-            handleCurrentLocation(loc);
-
-            // Get the data from the sensor and update the data manager
-            handleCurrentSensor();
-            dm.update(HR,speed);
-
             // If it's time for the data to be smoothed for UI
             if(currentTime-lastSmoothUpdate >= SMOOTHING_INTERVAL_MILLIS) {
                 moveData.smoothData();
                 lastSmoothUpdate=currentTime;
             }
-            // If it's time for the data to be smoothed for DataManager
-            if(currentTime-lastDataSmooth >= SMOOTH_INTERVAL_MILLIS) {
-                dm.computeMinuteValues(); // Compute the smoothed 1-min values
-                dm.computeDistance(); // Update the distance
-                lastDataSmooth = currentTime; // The last time we updated was now
-            }
-            // If it's time to compute a new guidance
-            if (currentTime-lastGuidanceCompute >= GUIDANCE_INTERVAL_MILLIS) {
-                desiredSpeed = dm.computeGuidance(); // Set the desired speed to the new guidance
-                lastGuidanceCompute = currentTime;
-            }
 
-            // Tell Android the the map has been changed and needs to be redrawn ASAP
-            map.postInvalidate();
+            // Get the current location and handle the current location
+            getCurrentLocation();
 
-            // Call this runnable to the handler
+            // Get the data from the sensor and update the data manager
+            handleCurrentSensor();
+            dm.update(HR,speed);
+            guidance = dm.getCurrent(dm.GUID);
+
+            map.postInvalidate(); // Tell Android the map needs to be redrawn ASAP
             handler.postDelayed(activityUIManager, UI_UPDATE_TIME_MILLIS);
         }
     };

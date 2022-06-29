@@ -1,8 +1,6 @@
 /**
  * This class manages data from the lab experiment. Aquires data every 15 seconds, smooths the data every minute and
  * runs the PSI and core temperature estimation models every minute. The class also holds the previous state of the model
- *
- * Edited 6/1/2022 by Peter Finch
  */
 
 package com.dataxign.mark.aasruckmarchpacer.mdp;
@@ -23,6 +21,9 @@ import android.widget.Toast;
 import com.dataxign.mark.aasruckmarchpacer.functions.USARIEM;
 
 public class DataManager {
+
+	private final static int SMOOTH_INTERVAL_MILLIS = 60000; // 1 min
+	private final static int GUIDANCE_INTERVAL_MILLIS = 120000; // 2 min
 
 	// These are the codes used by getCurrent fn representing fields
 	public final static int RAWHR=1;
@@ -57,8 +58,11 @@ public class DataManager {
 	public double lastGoodMPH=0;
 	public double distanceCompleted=0;
 
-	private long startTime;
+	private long sessionStartTime;
+
 	private long lastDistanceCompute;
+	private long lastDataSmooth;
+	private long lastGuidanceCompute;
 
 	private Policy policy;
 	private KalmanState ks=new KalmanState();
@@ -67,29 +71,37 @@ public class DataManager {
 
 	/**
 	 * Constructor method.
-	 * @param TCstart Initial core temp
-	 * @param Vstart Initial velocity
-	 * @param r App resources
-	 * @param fp Filepath for data to be written to
+	 * @param r App resource
 	 * @param cx App context
 	 */
-	public DataManager(double TCstart, double Vstart, Resources r, File fp, Context cx){
+	public DataManager(Resources r, Context cx){
 		rawHR=new ArrayList<Double>();
 		rawTC=new ArrayList<Double>();
 		rawSpeed=new ArrayList<Double>();
-		
 		smoothedHR=new ArrayList<Double>();
 		smoothedTC=new ArrayList<Double>();
 		smoothedSpeed=new ArrayList<Double>();
-		
 		estTC=new ArrayList<Double>();
 		obsPSI=new ArrayList<Double>();
 		estPSI=new ArrayList<Double>();
 		distance=new ArrayList<Double>();
 		guidance=new ArrayList<Double>();
-
 		policy=new Policy(r);
 		appCntx=cx;
+	}
+
+	/**
+	 * Initializes the data manager to be run.
+	 */
+	public void startSession(){
+		distanceCompleted = 0;
+		sessionStartTime = new Date().getTime();
+		computeGuidance();
+		double currentTc=getCurrent(smoothedTC);
+		if(currentTc>=35.5 && currentTc<38.5){ ks.currentTC=currentTc; }
+		rawHR.clear();
+		rawTC.clear();
+		rawSpeed.clear();
 	}
 
 	/**
@@ -99,30 +111,19 @@ public class DataManager {
 	 */
 	public void update(double HR, double MPH) {
 		double TC = computeEstimatedTC(HR);
-
-		// Add the heart rate
-		if (!(HR>220 || HR<40)) {
-			lastGoodHR = HR;
-			rawHR.add(Double.valueOf(HR));
+		if (!(HR>220 || HR<40)) { lastGoodHR = HR; rawHR.add(Double.valueOf(HR)); }
+		if (!(TC>20.0 || TC<42.5)) { lastGoodTC = TC; rawTC.add(Double.valueOf(TC)); }
+		if (!(MPH>11 || MPH<0)) { lastGoodMPH = MPH; rawSpeed.add(MPH); }
+		long currentTime = System.currentTimeMillis();
+		if(currentTime-lastDataSmooth >= SMOOTH_INTERVAL_MILLIS) {
+			this.computeDistance(); // Update the distance
+			this.computeMinuteValues(); // Compute the smoothed 1-min values
 		}
-
-		// Add the core temp
-		if (!(TC>20.0 || TC<42.5)) {
-			lastGoodTC = TC;
-			rawTC.add(Double.valueOf(TC));
-		}
-
-		// Add the speed in mph
-		if (!(MPH>11 || MPH<0)) {
-			lastGoodMPH = MPH;
-			rawSpeed.add(MPH);
-		}
+		boolean gup = (currentTime-lastGuidanceCompute >= GUIDANCE_INTERVAL_MILLIS);
+		if (gup) { this.computeGuidance(); }
 	}
 
-	/**
-	 * Computes a smoothed value using the median of 1 minute of time series data
-	 */
-	public void computeMinuteValues(){
+	private void computeMinuteValues(){
 		smoothedHR.add(Double.valueOf(computeMedian(rawHR)));
 		rawHR.clear();
 		smoothedTC.add(Double.valueOf(computeMedian(rawTC)));
@@ -133,12 +134,12 @@ public class DataManager {
 		obsPSI.add(computePSI(getCurrent(smoothedTC),getCurrent(smoothedHR)));
 		estTC.add(computeEstimatedTC(getCurrent(smoothedHR)));
 		estPSI.add(computePSI(getCurrent(estTC),getCurrent(smoothedHR)));
+
+		long currentTime = System.currentTimeMillis();
+		lastDataSmooth = currentTime;
 	}
 
-	/**
-	 * Updates the distance traveled field
-	 */
-	public void computeDistance(){
+	private void computeDistance(){
 		// Figure out how much time has passed since distance last computed
 		long time = new Date().getTime();
 		long epochTimeMillis = time - lastDistanceCompute;
@@ -156,48 +157,21 @@ public class DataManager {
 		lastDistanceCompute = time;
 	}
 
-	/**
-	 * Computes guidance with policy, adds it to guidance time series, and returns the guidance.
-	 * This function draws upon the currently stored distance data to compute.
-	 * @return A double representing the guidance move speed
-	 */
-	public double computeGuidance(){
+	private double computeGuidance(){
 		// Compute how long it's been since the run started
 		long time = new Date().getTime();
-		time = time - startTime;
+		time = time - sessionStartTime;
 
 		//Compute guidance at two minutes
 		double pol=policy.getPolicy(time, distanceCompleted, getCurrent(E_PSI));
 		guidance.add(pol);
 
+		long currentTime = System.currentTimeMillis();
+		lastGuidanceCompute = currentTime;
+
 		return pol;
 	}
 
-	/**
-	 * Initializes the data manager to be run.
-	 */
-	public void startSession(){
-		distanceCompleted = 0;
-		startTime = new Date().getTime();
-		computeGuidance();
-
-		//set Tcore at start of run
-		double currentTc=getCurrent(smoothedTC);
-
-		//If an appropriate value is not possible for TCore then will use the default of 37.1
-		if(currentTc>=35.5 && currentTc<38.5){ ks.currentTC=currentTc; }
-
-		// Empty out the system time series
-		rawHR.clear();
-		rawTC.clear();
-		rawSpeed.clear();
-	}
-
-	/**
-	 * This function returns the last item in a ArrayList object
-	 * @param al The ArrayList<Double> object
-	 * @return The last item in the list
-	 */
 	private double getCurrent(ArrayList<Double> al){
 		// Checking for error
 		if(al.size()==0) { return -10; }
@@ -206,61 +180,31 @@ public class DataManager {
 		return al.get(al.size()-1).doubleValue();
 	}
 
-	/**
-	 * Gives access to the class fields. On error returns -10
-	 * @param type Integer representing which field you want to access
-	 * @return The current value of the field
-	 */
+
 	public double getCurrent(int type){
 		switch(type){
-		case(RAWHR):
-			return getCurrent(rawHR);
-		case(RAWTC):
-			return getCurrent(rawTC);
-		case(RAWSPD):
-			return getCurrent(rawSpeed);
-		case(TC):
-			return getCurrent(smoothedTC);
-		case(HR):
-			return getCurrent(smoothedHR);
-		case(PSI):
-			return getCurrent(obsPSI);
-		case(E_TC):
-			return getCurrent(estTC);
-		case(E_PSI):
-			return getCurrent(estPSI);
-		case(SPEED):
-			return getCurrent(smoothedSpeed);
-		case(DIST):
-			return getCurrent(distance);
-		case(GUID):
-			return getCurrent(guidance);
-		default:
-			return -10;
+			case(RAWHR): return getCurrent(rawHR);
+			case(RAWTC): return getCurrent(rawTC);
+			case(RAWSPD): return getCurrent(rawSpeed);
+			case(TC): return getCurrent(smoothedTC);
+			case(HR): return getCurrent(smoothedHR);
+			case(PSI): return getCurrent(obsPSI);
+			case(E_TC): return getCurrent(estTC);
+			case(E_PSI): return getCurrent(estPSI);
+			case(SPEED): return getCurrent(smoothedSpeed);
+			case(DIST): return getCurrent(distance);
+			case(GUID): return getCurrent(guidance);
+			default: return -10;
 		}
 	}
 
-	/**
-	 * Function computes PSI Moran 1998 assuming HR0 and TC0 as documented in Moran
-	 * @param HR Input HR value
-	 * @param TC Input TC value
-	 * @return PSI from 0 to 10 roughly
-	 */
 	private double computePSI(double TC, double HR){
 		if(TC==-10 || HR==-10)return -10;
 		return USARIEM.calcPSI(TC, 37.1, HR, 71);
 	}
 
-	/**
-	 * Computes the median of a given ArrayList. Returns -10 on error
-	 * @param al The ArrayList<Double> object
-	 * @return The median of the list
-	 */
 	private double computeMedian(ArrayList<Double> al){
-		// Checking for input error
 		if(al.size() == 0) { return -10; }
-
-		// Converting the ArrayList to normal Array of doubles
 		double[] ad = new double[al.size()];
 		for(int i=0;i<al.size();i++){ ad[i]=al.get(i).doubleValue(); }
 
