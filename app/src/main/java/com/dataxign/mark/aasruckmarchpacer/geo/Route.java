@@ -59,8 +59,9 @@ public class Route {
      */
     public void generateRouteFromFile(Resources rs, int whichRoute){
         //BufferedReader in = new BufferedReader(new InputStreamReader(rs.openRawResource(R.raw.route_ft_campbell_grades)));
-        BufferedReader in = new BufferedReader(new InputStreamReader(rs.openRawResource(R.raw.route_douglas)));
-        //BufferedReader in = new BufferedReader(new InputStreamReader(rs.openRawResource(R.raw.route_natick)));
+        //BufferedReader in = new BufferedReader(new InputStreamReader(rs.openRawResource(R.raw.route_douglas)));
+        BufferedReader in = new BufferedReader(new InputStreamReader(rs.openRawResource(R.raw.route_natick)));
+        Log.d("Route", "Reading route file...");
 
         // Reading a route file
         try{
@@ -139,7 +140,7 @@ public class Route {
             double distance= findPerpendicularDistanceToSegment(p, s);
             double distFromStart=findDistanceFromStartOfLineSegment(p,s);
             double distFromEnd=findDistanceFromEndOfLineSegment(p,s);
-            Log.i("Route","Segment: "+i+" Distance: Perpen.= "+ distance +" From Start = "+distFromStart +" From End = "+distFromEnd);
+            Log.v("Route","Segment: "+i+" Distance: Perpen.= "+ distance +" From Start = "+distFromStart +" From End = "+distFromEnd);
 
             if(Math.abs(s.distance-(distFromStart+distFromEnd))<0.1){
                 possSegments.add(new Integer(i));
@@ -193,7 +194,6 @@ public class Route {
     }
 
     private double findDistanceFromEndOfLineSegment(LocationPoint p,Segment s){
-        //Segment s=route.get(seg_idx);
         double d=findPerpendicularDistanceToSegment(p,s);
         double h=Math.sqrt(Math.pow((p.easting-s.end.easting),2)+Math.pow((p.northing-s.end.northing),2));
         double a=Math.sqrt(h*h-d*d);
@@ -201,7 +201,6 @@ public class Route {
     }
 
     private double findDistanceFromStartOfLineSegment(LocationPoint p,Segment s){
-        //Segment s=route.get(seg_idx);
         double d=findPerpendicularDistanceToSegment(p, s);
         double h=Math.sqrt(Math.pow((p.easting - s.start.easting), 2) + Math.pow((p.northing - s.start.northing), 2));
         double a=Math.sqrt(h*h-d*d);
@@ -223,5 +222,4 @@ public class Route {
     public void addSegment(Segment s){
         route.add(s);
     }
-
 }

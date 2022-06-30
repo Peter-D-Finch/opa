@@ -98,7 +98,7 @@ public class ObanSensor {
                 Confidence = sensor_data[15+bg];
                 Battery = sensor_data[16+bg];
                 time_stamp = Arrays.copyOfRange(sensor_data, 17+bg, 21+bg);
-                Log.e("Sensor: scanCallback", "STATE: " + to_string());
+                Log.v("Sensor", to_string());
             }
         }
     };
@@ -107,6 +107,7 @@ public class ObanSensor {
     @SuppressLint("MissingPermission")
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     public ObanSensor(int given_roster_id, Context ctxt, Activity act) {
+        Log.d("Sensor", "Creating OBAN Sensor...");
         this.given_roster_id = given_roster_id;
         this.ctxt = ctxt;
         this.act = act;
@@ -127,6 +128,7 @@ public class ObanSensor {
                     .build();
         }
         scanner.startScan(filters, scanSettings, scanCallback);
+        Log.d("Sensor", "... OBAN Sensor created!");
     }
 
     // Methods to access the fields of the class

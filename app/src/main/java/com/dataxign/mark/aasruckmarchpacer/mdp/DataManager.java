@@ -75,6 +75,7 @@ public class DataManager {
 	 * @param cx App context
 	 */
 	public DataManager(Resources r, Context cx){
+		Log.d("DataManager", "Creating Data Manager...");
 		rawHR=new ArrayList<Double>();
 		rawTC=new ArrayList<Double>();
 		rawSpeed=new ArrayList<Double>();
@@ -88,12 +89,14 @@ public class DataManager {
 		guidance=new ArrayList<Double>();
 		policy=new Policy(r);
 		appCntx=cx;
+		Log.d("DataManager", "... Data Manager created!");
 	}
 
 	/**
 	 * Initializes the data manager to be run.
 	 */
 	public void startSession(){
+		Log.d("DataManager", "Starting session!");
 		distanceCompleted = 0;
 		sessionStartTime = new Date().getTime();
 		computeGuidance();
@@ -110,6 +113,7 @@ public class DataManager {
 	 * @param MPH The speed in mph
 	 */
 	public void update(double HR, double MPH) {
+		Log.v("DataManager", "Data Manager updated!");
 		double TC = computeEstimatedTC(HR);
 		if (!(HR>220 || HR<40)) { lastGoodHR = HR; rawHR.add(Double.valueOf(HR)); }
 		if (!(TC>20.0 || TC<42.5)) { lastGoodTC = TC; rawTC.add(Double.valueOf(TC)); }
@@ -125,18 +129,16 @@ public class DataManager {
 
 	private void computeMinuteValues(){
 		smoothedHR.add(Double.valueOf(computeMedian(rawHR)));
-		rawHR.clear();
 		smoothedTC.add(Double.valueOf(computeMedian(rawTC)));
-		rawTC.clear();
 		smoothedSpeed.add(Double.valueOf(computeMedian(rawSpeed)));
-		rawSpeed.clear();
-
 		obsPSI.add(computePSI(getCurrent(smoothedTC),getCurrent(smoothedHR)));
 		estTC.add(computeEstimatedTC(getCurrent(smoothedHR)));
 		estPSI.add(computePSI(getCurrent(estTC),getCurrent(smoothedHR)));
-
 		long currentTime = System.currentTimeMillis();
 		lastDataSmooth = currentTime;
+		rawHR.clear();
+		rawTC.clear();
+		rawSpeed.clear();
 	}
 
 	private void computeDistance(){
@@ -153,33 +155,25 @@ public class DataManager {
 
 		// Add the distance computed to the total distance travelled
 		distanceCompleted = distanceCompleted + dist;
-		Log.w("DataManager","Completed Distance: " + distanceCompleted);
+		Log.i("DataManager","Computing distance, completed so far: " + distanceCompleted);
 		lastDistanceCompute = time;
 	}
 
 	private double computeGuidance(){
-		// Compute how long it's been since the run started
-		long time = new Date().getTime();
-		time = time - sessionStartTime;
-
-		//Compute guidance at two minutes
-		double pol=policy.getPolicy(time, distanceCompleted, getCurrent(E_PSI));
+		Log.i("DataManager", "Computing guidance");
+		long time = new Date().getTime(); // Get current time
+		time = time - sessionStartTime; // Compute how long it's been since the run started
+		double pol=policy.getPolicy(time, distanceCompleted, getCurrent(E_PSI)); //Compute guidance
 		guidance.add(pol);
-
 		long currentTime = System.currentTimeMillis();
 		lastGuidanceCompute = currentTime;
-
 		return pol;
 	}
 
 	private double getCurrent(ArrayList<Double> al){
-		// Checking for error
-		if(al.size()==0) { return -10; }
-
-		// Retrieves the last item in the arrayList
-		return al.get(al.size()-1).doubleValue();
+		if(al.size()==0) { return -10; } // Checking for error
+		return al.get(al.size()-1).doubleValue(); // Retrieves the last item in the arrayList
 	}
-
 
 	public double getCurrent(int type){
 		switch(type){
@@ -207,13 +201,8 @@ public class DataManager {
 		if(al.size() == 0) { return -10; }
 		double[] ad = new double[al.size()];
 		for(int i=0;i<al.size();i++){ ad[i]=al.get(i).doubleValue(); }
-
-		// Sorting the array
-		Arrays.sort(ad);
-
-		// If the size of the list is 1, then that's the median
-		if(al.size()==1) { return ad[0]; }
-
+		Arrays.sort(ad); // Sorting the array
+		if(al.size()==1) { return ad[0]; } // If the size of the list is 1, then that's the median
 		// In order to find the median, we must first check if the array has even or odd num elements
 		if(al.size()%2==0) { // Even number of elements
 			int p1=(al.size()/2)-1;
@@ -227,16 +216,13 @@ public class DataManager {
 	}
 
 	/**
-	* Can be used to compute the core temp from HR
+	* Can be used to compute the core temp from HR. Returns -10 on error
 	* @param HR Input HR value
 	* @return The core temp
     */
 	private double computeEstimatedTC(double HR){
 		if(HR==-10)return-10;
 		ks=USARIEM.estimateTcore(HR, ks);
-		Log.i("DataManager","Estimated TC = "+ks.currentTC+" | Estimated V = "+ks.currentV);
-		//lastTC=ks.currentTC;
-		//lastV=ks.currentV;
 		return ks.currentTC;
 	}
 }

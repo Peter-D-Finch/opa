@@ -140,7 +140,7 @@ public class MapChart_CustomView extends View {
 	public void onDraw(Canvas canvas) {
 		super.onDraw(canvas);
 
-		Log.i("Map", "Drawing Map...");
+		Log.v("Map", "Drawing Map...");
 		canvas.drawBitmap(base, 0, 0, null);
 
 		if(displayMode==MAP_DRAW_MAP) {
@@ -222,7 +222,7 @@ public class MapChart_CustomView extends View {
 	}
 
 	public void drawCurrentSeg(Canvas c){
-		Log.i("Map","Current Segment...");
+		Log.v("Map","Current Segment...");
 		if (currentSeg==null)return;
 				//draw this segment
 		c.drawLine((float)(currentSeg.start.easting-xoff)*(float)(pxperm_x),(float)(ytop-(currentSeg.start.northing-yoff))*(float)(pxperm_y),(float)(currentSeg.end.easting-xoff)*(float)(pxperm_x),(float)(ytop-(currentSeg.end.northing-yoff))*(float)(pxperm_y),paintH);
@@ -230,7 +230,7 @@ public class MapChart_CustomView extends View {
 	}
 
 	public void drawRoute(Canvas c){
-		Log.i("Map","Drawing Route...");
+		Log.v("Map","Drawing Route...");
 		if (route==null)return;
 		if(route.title.equals("Ft. Campbell")){
 			//Add Map
@@ -256,10 +256,10 @@ public class MapChart_CustomView extends View {
 			yoff = tl.northing - rheight;
 			ytop = rheight;
 
-			Log.i("Map", "pxperm_x: " + pxperm_x + " pxperm_y: " + pxperm_y + " xoff: " + xoff + " yoff: " + yoff);
+			Log.v("Map", "pxperm_x: " + pxperm_x + " pxperm_y: " + pxperm_y + " xoff: " + xoff + " yoff: " + yoff);
 		}
 		else {
-			Log.i("Map", "Route: " + route.title + " Defined? " + route.routeDefined);
+			Log.v("Map", "Route: " + route.title + " Defined? " + route.routeDefined);
 			if (route.routeDefined) {
 				//Compute pixels per meter
 				pxperm_x = originalImageWidth / route.width;
@@ -273,7 +273,7 @@ public class MapChart_CustomView extends View {
 				yoff = route.top - route.height;
 				ytop = route.height;
 
-				Log.i("Map", "pxperm_x: " + pxperm_x + " pxperm_y: " + pxperm_y + " xoff: " + xoff + " yoff: " + yoff);
+				Log.v("Map", "pxperm_x: " + pxperm_x + " pxperm_y: " + pxperm_y + " xoff: " + xoff + " yoff: " + yoff);
 			}
 		}
 

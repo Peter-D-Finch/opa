@@ -38,10 +38,8 @@ public class Policy {
 	}
 	
 	private void readPolicyFile(Resources rs){
-		
 		long startTime=System.currentTimeMillis();
-		Log.w("Policy", "Reading Policy... (Can take a while)");
-
+		Log.d("Policy", "Reading Policy... (Can take a while)");
 		BufferedReader in = new BufferedReader(new InputStreamReader(rs.openRawResource(R.raw.policy_7_5_actual_relaxsmooth0120)));
 		policyFileName="policy_7_5_actual_relaxsmooth0120.csv";
 		try{
@@ -63,14 +61,11 @@ public class Policy {
 					}
 				}
 			}
-		}
-		catch(IOException e){
+		} catch(IOException e){
             Log.e("Policy", "Uh Oh Can't read policy file. This is BAD! "+e.getMessage());
-            
 		}
-		
 		long tookTime=System.currentTimeMillis()-startTime;
-		Log.w("Policy", "Policy Read Done! "+tookTime + "ms");
+		Log.d("Policy", "Policy Read Done! "+tookTime + "ms");
 		gotPolicy=true;
 
 	}
@@ -87,11 +82,8 @@ public class Policy {
 		int distIndex=distIndex(distance);
 		if(distIndex>NUMBER_OF_DISTANCES-1)return 0;
 		int psiIndex=psiIndex(psi);
-		
 		int speed=policy[timeIndex][psiIndex][distIndex];
 		unGuide=speed;
-		
-		
 		return speedValue(speed);
 	}
 
@@ -105,12 +97,10 @@ public class Policy {
 	 * @return timeIndex (0-30)
 	 */
 	private int timeIndex(long time){
-		
 		int timeIndex=(int) Math.round((double)time/(1000*120)); //1000 for ms and 120 for two minutes
 		//Possibly limit timeIndex to 30 but maybe this can be given 
 		//if(timeIndex>=NUMBER_OF_TIME_PERIODS)timeIndex=29;
 		tIdx=timeIndex;
-		Log.e("Policy","Time Index="+timeIndex);
 		return timeIndex;
 	}
 	
@@ -126,7 +116,6 @@ public class Policy {
 		if(psiIndex<0)psiIndex=0;
 		if(psiIndex>38)psiIndex=38;
 		pIdx=psiIndex;
-		Log.e("Policy","PSI Index="+psiIndex);
 		return psiIndex;
 	}
 	/**
@@ -141,7 +130,6 @@ public class Policy {
 		if(distanceIndex<0)distanceIndex=0;
 		if(distanceIndex>899)distanceIndex=899;
 		dIdx=distanceIndex;
-		Log.e("Policy","Distance="+distance+ " Index="+distanceIndex);
 		return distanceIndex;
 	}
 	

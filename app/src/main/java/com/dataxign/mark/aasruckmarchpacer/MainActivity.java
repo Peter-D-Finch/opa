@@ -186,7 +186,7 @@ public class MainActivity extends Activity {
      * location is updated from the Android location service.
      */
     private class MainLocationListener implements LocationListener {
-        public MainLocationListener() { Log.v("init", "Just Created a LocationListener"); }
+        public MainLocationListener() { Log.d("init","Location Listener created!"); }
         public void onLocationChanged(Location local) { location = local; }
     };
 
@@ -247,7 +247,7 @@ public class MainActivity extends Activity {
 
             // Snapping the location point onto the route
             LocationPoint snap = route.snapToLine(currentLocation);
-            Log.v("Main", "Current Route = " + snap.currentSegment);
+            Log.d("MainActivity", "Current Route = " + snap.currentSegment);
 
             // If the LocationPoint was able to be snapped onto the route
             if (snap.currentSegment >= 0) {
@@ -261,7 +261,6 @@ public class MainActivity extends Activity {
                 segmentnum.setText("Segment #: None");
                 segmenthead.setText("Segment Heading: None");
                 segmentdist.setText("Distsance Along Segment = WHO KNOWS?");
-
                 map.currentSeg = null;
                 map.snap = null;
             }
@@ -293,24 +292,18 @@ public class MainActivity extends Activity {
      */
     private Runnable activityUIManager = new Runnable() {
         public void run() {
-            // Get the current system time
-            long currentTime=System.currentTimeMillis();
-            // If it's time for the data to be smoothed for UI
+            Log.v("MainRunnable", "Main system loop");
+            long currentTime=System.currentTimeMillis(); // Get the current system time
             if(currentTime-lastSmoothUpdate >= SMOOTHING_INTERVAL_MILLIS) {
-                moveData.smoothData();
+                moveData.smoothData(); // If it's time to smooth data for the UI, do that
                 lastSmoothUpdate=currentTime;
             }
-
-            // Get the current location and handle the current location
-            getCurrentLocation();
-
-            // Get the data from the sensor and update the data manager
-            handleCurrentSensor();
+            getCurrentLocation(); // Get the current location and handle the current location
+            handleCurrentSensor(); // Get the data from the sensor and update the data manager
             dm.update(HR,speed);
             guidance = dm.getCurrent(dm.GUID);
-
             map.postInvalidate(); // Tell Android the map needs to be redrawn ASAP
-            handler.postDelayed(activityUIManager, UI_UPDATE_TIME_MILLIS);
+            handler.postDelayed(activityUIManager, UI_UPDATE_TIME_MILLIS); // Loop the runnable
         }
     };
 }
