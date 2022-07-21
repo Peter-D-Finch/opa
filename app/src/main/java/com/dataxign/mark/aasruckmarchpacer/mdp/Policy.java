@@ -42,6 +42,7 @@ public class Policy {
 		Log.d("Policy", "Reading Policy... (Can take a while)");
 		BufferedReader in = new BufferedReader(new InputStreamReader(rs.openRawResource(R.raw.policy_7_5_actual_relaxsmooth0120)));
 		policyFileName="policy_7_5_actual_relaxsmooth0120.csv";
+		//policyFileName="policy_7_5_from_actual.csv";
 		try{
 			for(int tp=0;tp<NUMBER_OF_TIME_PERIODS;tp++){
 				for(int npsi=0;npsi<NUMBER_OF_PSIS;npsi++){

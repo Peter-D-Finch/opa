@@ -37,6 +37,8 @@ import com.dataxign.mark.aasruckmarchpacer.mdp.DataManager;
 import com.dataxign.mark.aasruckmarchpacer.geo.DataSmoother;
 import com.dataxign.mark.aasruckmarchpacer.mdp.ObanSensor;
 
+import java.util.List;
+
 public class MainActivity extends Activity {
 
     private final int UI_UPDATE_TIME_MILLIS = 1000;
@@ -78,34 +80,25 @@ public class MainActivity extends Activity {
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         // Request permissions
-        ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, 1);
-        ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_SCAN}, 1);
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, 1);
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_SCAN}, 1);
         boolean fine_loc_perm = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED;
         boolean course_loc_perm = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED;
-        if (fine_loc_perm && course_loc_perm) { return; }
-
+        if (fine_loc_perm && course_loc_perm) {
+            return;
+        }
         // Set orientation to landscape
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         setContentView(R.layout.activity_main);
-
-        //Grab UI Elements
-        initUI();
-
-        //Initialize the Location Elements for using the GPS
-        initLocations();
-
-        //Initialize the route for the app
-        initRoute();
-
-        // Initialize data manager
-        dm = new DataManager(getResources(),getApplicationContext());
-
-        //Initialize the UI manager
-        handler = new Handler();
-        handler.post(activityUIManager);
+        initUI(); // Grab UI Elements
+        initLocations(); // Initialize the Location Elements for using the GPS
+        initRoute(); // Initialize the route for the app
+        dm = new DataManager(getResources(), getApplicationContext()); // Initialize data manager
+        handler = new Handler(); // Initialize the UI manager
+        handler.post(activityUIManager); // Start the system loop
     }
+
     private void initUI() {
         lat_raw = (TextView) findViewById(R.id.lat_raw);
         lon_raw = (TextView) findViewById(R.id.lon_raw);
@@ -158,6 +151,7 @@ public class MainActivity extends Activity {
         });
         moveData = new DataSmoother();
     }
+
     @TargetApi(Build.VERSION_CODES.M)
     private void initLocations() {
         currentLocation = new LocationPoint();
@@ -169,12 +163,17 @@ public class MainActivity extends Activity {
             int pg = PackageManager.PERMISSION_GRANTED;
             boolean afl_perm = checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != pg;
             boolean acl_perm = checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != pg;
-            if (afl_perm && acl_perm) { return; }
+            if (afl_perm && acl_perm) {
+                return;
+            }
 
             // Subscribing the locationManager to the locationListener
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 100, 1, locationListener);
-        } else { Log.e("Main","GPS NOT Enabled"); }
+        } else {
+            Log.e("Main", "GPS NOT Enabled");
+        }
     }
+
     private void initRoute() {
         int whichRoute = 0; //Will be used to specify predefined routes
         route = new Route(getResources(), whichRoute);
@@ -186,26 +185,65 @@ public class MainActivity extends Activity {
      * location is updated from the Android location service.
      */
     private class MainLocationListener implements LocationListener {
-        public MainLocationListener() { Log.d("init","Location Listener created!"); }
-        public void onLocationChanged(Location local) { location = local; }
-    };
+        public MainLocationListener() {
+            Log.d("init", "Location Listener created!");
+        }
+
+        public void onLocationChanged(Location local) {
+            location = local;
+            Log.v("onLocationChanged", "Got location");
+        }
+    }
+
+    ;
 
     /**
      * Retrieves the last known location from the LocationListener.
      * @return The last known location
      */
-    private Location getCurrentLocation(){
-        Location loc=null;
-        try {
-            loc = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-            handleCurrentLocation(loc);
+    private Location getCurrentLocation() {
+        Location loc = null;
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            Log.e("getCurrentLocation", "No location permission");
         }
-        catch(SecurityException e){
-            Log.e("MainAct", "GPS Security Permission Exception "+e);
+        loc = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+        if (loc == null) {
+            Log.e("getCurrentLocation", "loc is null");
         }
+
         return loc;
     }
 
+    private Location getLastKnownLocation() {
+        locationManager = (LocationManager) getApplicationContext().getSystemService(LOCATION_SERVICE);
+        List<String> providers = locationManager.getProviders(true);
+        Location bestLocation = null;
+        for (String provider : providers) {
+            Log.v("gg","bleh");
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                Log.e("getLastKnownLocation", "Location permissions not granted.");
+                return null;
+            }
+            Location l = locationManager.getLastKnownLocation(provider);
+            if (l == null) {
+                continue;
+            }
+            if (bestLocation == null || l.getAccuracy() < bestLocation.getAccuracy()) {
+                // Found best last known location: %s", l);
+                bestLocation = l;
+                Log.e("gg", "bleh");
+            }
+        }
+        return bestLocation;
+    }
     /**
      * Updates UI and system variables given a location
      * @param local The user's current location
@@ -273,6 +311,9 @@ public class MainActivity extends Activity {
             map.setLocation(currentLocation);
             map.postInvalidate();
         }
+        else {
+            Log.e("handleLocation","Location is null.");
+        }
     }
 
     /**
@@ -298,7 +339,8 @@ public class MainActivity extends Activity {
                 moveData.smoothData(); // If it's time to smooth data for the UI, do that
                 lastSmoothUpdate=currentTime;
             }
-            getCurrentLocation(); // Get the current location and handle the current location
+            Location local = getLastKnownLocation(); // Get the current location and handle the current location
+            handleCurrentLocation(local);
             handleCurrentSensor(); // Get the data from the sensor and update the data manager
             dm.update(HR,speed);
             guidance = dm.getCurrent(dm.GUID);
