@@ -12,19 +12,24 @@ package com.dataxign.mark.aasruckmarchpacer;
 import android.Manifest;
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.provider.DocumentsContract;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
@@ -47,13 +52,15 @@ public class MainActivity extends Activity {
     private Handler handler = null;
     private Activity act = this;
 
+    private boolean started = false;
+
     //Widgets for user interface
     private TextView lat_raw, lon_raw, easting, northing, updateFreq;
     private TextView speedinst, speedave, headinginst, headingave;
     private TextView segmentnum, segmenthead, segmentdist;
     private EditText roster_num_input;
     private TextView heart_rate, battery;
-    private Button button_start, button_mode;
+    private Button button_start, button_mode, button_pair, button_policy, button_route;
     private MapChart_CustomView map;
     private int mapDisplayMode = 0; //0=Map, 1=Pacing Display
 
@@ -85,16 +92,15 @@ public class MainActivity extends Activity {
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_SCAN}, 1);
         boolean fine_loc_perm = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED;
         boolean course_loc_perm = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED;
-        if (fine_loc_perm && course_loc_perm) {
-            return;
-        }
+        if (fine_loc_perm && course_loc_perm) {return;}
+
         // Set orientation to landscape
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         setContentView(R.layout.activity_main);
+
         initUI(); // Grab UI Elements
         initLocations(); // Initialize the Location Elements for using the GPS
-        initRoute(); // Initialize the route for the app
-        dm = new DataManager(getResources(), getApplicationContext()); // Initialize data manager
+
         handler = new Handler(); // Initialize the UI manager
         handler.post(activityUIManager); // Start the system loop
     }
@@ -140,8 +146,8 @@ public class MainActivity extends Activity {
         });
 
         // Pair device button
-        button_mode = (Button) findViewById(R.id.pair_device_button);
-        button_mode.setOnClickListener(new View.OnClickListener() {
+        button_pair = (Button) findViewById(R.id.pair_device_button);
+        button_pair.setOnClickListener(new View.OnClickListener() {
             @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
             public void onClick(View v) {
                 String roster_num_str = roster_num_input.getText().toString();
@@ -149,7 +155,52 @@ public class MainActivity extends Activity {
                 sensor = new ObanSensor(roster_num, getApplicationContext(), act);
             }
         });
+
+        // Button to pick the policy file
+        button_policy = (Button) findViewById(R.id.policy_button);
+        button_policy.setOnClickListener(new View.OnClickListener() {
+            @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+            public void onClick(View v) {
+                openFileChooser(0);
+            }
+        });
+
+        // Button to pick the route file
+        button_route = (Button) findViewById(R.id.route_button);
+        button_route.setOnClickListener(new View.OnClickListener() {
+            @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+            public void onClick(View v) {
+                openFileChooser(1);
+            }
+        });
+
         moveData = new DataSmoother();
+    }
+
+    public void onActivityResult(int requestcode, int resultcode, Intent data) {
+        super.onActivityResult(requestcode, resultcode, data);
+        if (resultcode == Activity.RESULT_OK) {
+            if(data == null) {return;}
+            if (requestcode == 0) {
+                Context context = getApplicationContext();
+                Uri uri = data.getData();
+                Toast.makeText(context, uri.getPath(), Toast.LENGTH_SHORT).show();
+                dm = new DataManager(uri, getApplicationContext());
+            }
+            if (requestcode == 1) {
+                Context context = getApplicationContext();
+                Uri uri = data.getData();
+                Toast.makeText(context, uri.getPath(), Toast.LENGTH_SHORT).show();
+                route = new Route(uri, context);
+                map.updateRoute(route);
+            }
+        }
+    }
+
+    public void openFileChooser(int requestcode) {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("*/*");
+        startActivityForResult(intent, requestcode);
     }
 
     @TargetApi(Build.VERSION_CODES.M)
@@ -168,16 +219,10 @@ public class MainActivity extends Activity {
             }
 
             // Subscribing the locationManager to the locationListener
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 100, 1, locationListener);
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 100, 0, locationListener);
         } else {
             Log.e("Main", "GPS NOT Enabled");
         }
-    }
-
-    private void initRoute() {
-        int whichRoute = 0; //Will be used to specify predefined routes
-        route = new Route(getResources(), whichRoute);
-        map.updateRoute(route);
     }
 
     /**
@@ -193,37 +238,14 @@ public class MainActivity extends Activity {
             location = local;
             Log.v("onLocationChanged", "Got location");
         }
-    }
-
-    ;
+    };
 
     /**
      * Retrieves the last known location from the LocationListener.
      * @return The last known location
      */
-    private Location getCurrentLocation() {
-        Location loc = null;
-
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            Log.e("getCurrentLocation", "No location permission");
-        }
-        loc = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-        if (loc == null) {
-            Log.e("getCurrentLocation", "loc is null");
-        }
-
-        return loc;
-    }
-
     private Location getLastKnownLocation() {
-        locationManager = (LocationManager) getApplicationContext().getSystemService(LOCATION_SERVICE);
+        //locationManager = (LocationManager) getApplicationContext().getSystemService(LOCATION_SERVICE);
         List<String> providers = locationManager.getProviders(true);
         Location bestLocation = null;
         for (String provider : providers) {
@@ -239,11 +261,11 @@ public class MainActivity extends Activity {
             if (bestLocation == null || l.getAccuracy() < bestLocation.getAccuracy()) {
                 // Found best last known location: %s", l);
                 bestLocation = l;
-                Log.e("gg", "bleh");
             }
         }
         return bestLocation;
     }
+
     /**
      * Updates UI and system variables given a location
      * @param local The user's current location
@@ -340,11 +362,13 @@ public class MainActivity extends Activity {
                 lastSmoothUpdate=currentTime;
             }
             Location local = getLastKnownLocation(); // Get the current location and handle the current location
-            handleCurrentLocation(local);
-            handleCurrentSensor(); // Get the data from the sensor and update the data manager
-            dm.update(HR,speed);
-            guidance = dm.getCurrent(dm.GUID);
-            map.postInvalidate(); // Tell Android the map needs to be redrawn ASAP
+            if (started) {
+                handleCurrentLocation(local);
+                handleCurrentSensor(); // Get the data from the sensor and update the data manager
+                dm.update(HR, speed);
+                guidance = dm.getCurrent(dm.GUID);
+                map.postInvalidate(); // Tell Android the map needs to be redrawn ASAP
+            }
             handler.postDelayed(activityUIManager, UI_UPDATE_TIME_MILLIS); // Loop the runnable
         }
     };

@@ -15,6 +15,7 @@ import java.util.Date;
 
 import android.content.Context;
 import android.content.res.Resources;
+import android.net.Uri;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -88,6 +89,24 @@ public class DataManager {
 		distance=new ArrayList<Double>();
 		guidance=new ArrayList<Double>();
 		policy=new Policy(r);
+		appCntx=cx;
+		Log.d("DataManager", "... Data Manager created!");
+	}
+
+	public DataManager(Uri uri, Context cx){
+		Log.d("DataManager", "Creating Data Manager...");
+		rawHR=new ArrayList<Double>();
+		rawTC=new ArrayList<Double>();
+		rawSpeed=new ArrayList<Double>();
+		smoothedHR=new ArrayList<Double>();
+		smoothedTC=new ArrayList<Double>();
+		smoothedSpeed=new ArrayList<Double>();
+		estTC=new ArrayList<Double>();
+		obsPSI=new ArrayList<Double>();
+		estPSI=new ArrayList<Double>();
+		distance=new ArrayList<Double>();
+		guidance=new ArrayList<Double>();
+		policy=new Policy(uri, cx);
 		appCntx=cx;
 		Log.d("DataManager", "... Data Manager created!");
 	}

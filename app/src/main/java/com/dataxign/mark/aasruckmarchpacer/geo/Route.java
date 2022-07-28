@@ -1,12 +1,16 @@
 package com.dataxign.mark.aasruckmarchpacer.geo;
 
+import android.content.Context;
 import android.content.res.Resources;
+import android.net.Uri;
 import android.util.Log;
 
 import com.dataxign.mark.aasruckmarchpacer.R;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
@@ -45,22 +49,29 @@ public class Route {
     /**
      * Second constructor that takes two arguments
      * @param rs App resources
-     * @param whichRoute an integer representing which route is to be loaded
      */
-    public Route(Resources rs, int whichRoute){
+    public Route(Resources rs){
         route=new ArrayList<Segment>(2);
-        generateRouteFromFile(rs,whichRoute);
+        BufferedReader in = new BufferedReader(new InputStreamReader(rs.openRawResource(R.raw.route_natick)));
+        generateRouteFromFile(in);
     }
 
     /**
-     * Loads a route from a file.
-     * @param rs App resources
-     * @param whichRoute an integer representing which route is to be loaded
+     * Third constructor. This is for loading a route from a file picker.
+     * @param uri the uri of the route file
      */
-    public void generateRouteFromFile(Resources rs, int whichRoute){
-        //BufferedReader in = new BufferedReader(new InputStreamReader(rs.openRawResource(R.raw.route_ft_campbell_grades)));
-        //BufferedReader in = new BufferedReader(new InputStreamReader(rs.openRawResource(R.raw.route_douglas)));
-        BufferedReader in = new BufferedReader(new InputStreamReader(rs.openRawResource(R.raw.route_natick)));
+    public Route(Uri uri, Context context) {
+        route=new ArrayList<Segment>(2);
+        try {
+            InputStream is = context.getContentResolver().openInputStream(uri);
+            BufferedReader in = new BufferedReader(new InputStreamReader(is));
+            generateRouteFromFile(in);
+        } catch (FileNotFoundException e) {
+            Log.e("Route","Failed to open file input stream. IOException.");
+        }
+    }
+
+    public void generateRouteFromFile(BufferedReader in){
         Log.d("Route", "Reading route file...");
 
         // Reading a route file

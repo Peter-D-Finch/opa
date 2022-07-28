@@ -1,13 +1,16 @@
 package com.dataxign.mark.aasruckmarchpacer.mdp;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.NoSuchElementException;
 import java.util.StringTokenizer;
 
+import android.content.Context;
 import android.content.res.Resources;
+import android.net.Uri;
 import android.util.Log;
 
 import com.dataxign.mark.aasruckmarchpacer.R;
@@ -33,16 +36,25 @@ public class Policy {
 	
 	public Policy(Resources rs){
 		//Read in file
-		policy=new int[NUMBER_OF_TIME_PERIODS][NUMBER_OF_PSIS][NUMBER_OF_DISTANCES];
-		readPolicyFile(rs);
+		policy = new int[NUMBER_OF_TIME_PERIODS][NUMBER_OF_PSIS][NUMBER_OF_DISTANCES];
+		BufferedReader in = new BufferedReader(new InputStreamReader(rs.openRawResource(R.raw.policy_7_5_actual_relaxsmooth0120)));
+		readPolicyFile(in);
+	}
+
+	public Policy(Uri uri, Context context) {
+		policy = new int[NUMBER_OF_TIME_PERIODS][NUMBER_OF_PSIS][NUMBER_OF_DISTANCES];
+		try {
+			InputStream is = context.getContentResolver().openInputStream(uri);
+			BufferedReader in = new BufferedReader(new InputStreamReader(is));
+			readPolicyFile(in);
+		} catch (FileNotFoundException e) {
+			Log.e("Route","Failed to open file input stream. IOException.");
+		}
 	}
 	
-	private void readPolicyFile(Resources rs){
+	private void readPolicyFile(BufferedReader in){
 		long startTime=System.currentTimeMillis();
 		Log.d("Policy", "Reading Policy... (Can take a while)");
-		BufferedReader in = new BufferedReader(new InputStreamReader(rs.openRawResource(R.raw.policy_7_5_actual_relaxsmooth0120)));
-		policyFileName="policy_7_5_actual_relaxsmooth0120.csv";
-		//policyFileName="policy_7_5_from_actual.csv";
 		try{
 			for(int tp=0;tp<NUMBER_OF_TIME_PERIODS;tp++){
 				for(int npsi=0;npsi<NUMBER_OF_PSIS;npsi++){
