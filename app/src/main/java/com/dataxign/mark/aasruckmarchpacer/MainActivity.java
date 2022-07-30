@@ -53,6 +53,9 @@ public class MainActivity extends Activity {
     private Activity act = this;
 
     private boolean started = false;
+    private boolean policy_init = false;
+    private boolean route_init = false;
+    private boolean device_init = false;
 
     //Widgets for user interface
     private TextView lat_raw, lon_raw, easting, northing, updateFreq;
@@ -106,6 +109,8 @@ public class MainActivity extends Activity {
     }
 
     private void initUI() {
+        Context context = getApplicationContext();
+
         lat_raw = (TextView) findViewById(R.id.lat_raw);
         lon_raw = (TextView) findViewById(R.id.lon_raw);
         easting = (TextView) findViewById(R.id.east);
@@ -129,7 +134,21 @@ public class MainActivity extends Activity {
         button_start = (Button) findViewById(R.id.buttonStart);
         button_start.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                dm.startSession();
+                if (device_init) {
+                    if (policy_init) {
+                        if (route_init) {
+                            if (heart_rate == null) {
+                                Toast.makeText(context, "No data received from sensor.", Toast.LENGTH_SHORT).show();
+                            }
+                            else {
+                                dm.startSession();
+                            }
+                        }
+                        else { Toast.makeText(context, "Please initialize route file before starting!", Toast.LENGTH_SHORT).show(); }
+                    }
+                    else { Toast.makeText(context, "Please initialize policy file before starting!", Toast.LENGTH_SHORT).show(); }
+                }
+                else { Toast.makeText(context, "Please initialize OBAN device before starting!", Toast.LENGTH_SHORT).show(); }
             }
         });
 
@@ -150,6 +169,7 @@ public class MainActivity extends Activity {
         button_pair.setOnClickListener(new View.OnClickListener() {
             @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
             public void onClick(View v) {
+                device_init = true;
                 String roster_num_str = roster_num_input.getText().toString();
                 int roster_num = Integer.parseInt(roster_num_str);
                 sensor = new ObanSensor(roster_num, getApplicationContext(), act);
@@ -161,6 +181,7 @@ public class MainActivity extends Activity {
         button_policy.setOnClickListener(new View.OnClickListener() {
             @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
             public void onClick(View v) {
+                policy_init = true;
                 openFileChooser(0);
             }
         });
@@ -170,6 +191,7 @@ public class MainActivity extends Activity {
         button_route.setOnClickListener(new View.OnClickListener() {
             @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
             public void onClick(View v) {
+                route_init = true;
                 openFileChooser(1);
             }
         });
